@@ -62,7 +62,7 @@ After the pre-flight check is completed for the cluster an email is generated su
 ### Architecture
 
 <p style="text-align:center">
-<img src="./Images/architecture.png"/>
+<img src="./Images/architecture.png" height="600px"/>
 </p>
 
 
