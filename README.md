@@ -74,9 +74,6 @@ After the pre-flight check is completed for the cluster an email is generated su
 
 ![Workflow](./Images/workflow.png)
 
-* Change the title in this README
-* Edit your repository description on GitHub
-
 ### Usage of Playbook
 
 **Editing**
