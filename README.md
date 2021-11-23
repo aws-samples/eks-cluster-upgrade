@@ -54,9 +54,207 @@ After the pre-flight check is completed for the cluster an email is generated su
    * If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the flow.
   
 
+### Objective 
+
+1. **To upgrade the cluster in one click** : There are many steps involved in updating a cluster and our main objective is to automate all the steps involved in EKS Cluster Upgradation to one click.
+2. **To reduce manual effort and time** : To update an EKS cluster , customers have to manually perform every step which is quite time taking and also a hectic task so, our objective is to reduce that manual intervention and also to save customer’s time.
+
+### Architecture
+
+<p style="text-align:center">
+<img src="./Images/architecture.png"/>
+</p>
+
+
+### Components used
+
+![Technologies Used ](./Images/technologies-used.png)
+
+### Workflow
+
+![Workflow](./Images/workflow.png)
 
 * Change the title in this README
 * Edit your repository description on GitHub
+
+### Usage of Playbook
+
+**Editing**
+
+``` 
+
+$ aws eks update-kubeconfig --name eks-cluster-name --region aws-region $ kubectl edit configmap aws-auth -n kube-system
+Add the IAM user to mapUsers. For example:
+mapUsers: |
+  - userarn: arn:aws:iam::XXXXXXXXXXXX:user/testuser
+username: testuser
+    groups:
+      - system:masters
+Add the IAM role to mapRoles. For example:
+mapRoles: |
+  - rolearn: arn:aws:iam::XXXXXXXXXXXX:role/testrole
+    username: testrole
+    groups:
+      - system:masters
+
+```
+
+**Roles and Policies required**
+
+``` 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "eksoneclickrole",
+            "Effect": "Allow",
+            "Action": [
+                "autoscaling:DescribeAutoScalingInstances",
+                "eks:UpdateClusterVersion",
+                "ec2:DescribeInstances",
+                "eks:DescribeFargateProfile",
+                "ses:VerifyEmailIdentity",
+                "logs:DescribeLogStreams",
+                "ses:GetSendQuota",
+                "autoscaling:DescribeLaunchConfigurations",
+                "eks:UpdateAddon",
+                "eks:ListAddons",
+                "sts:GetAccessKeyInfo",
+                "autoscaling:CreateLaunchConfiguration",
+                "ssm:*",
+                "ses:VerifyDomainIdentity",
+                "eks:DescribeAddon",
+                "sts:GetSessionToken",
+                "eks:UpdateNodegroupVersion",
+                "logs:CreateLogStream",
+                "eks:DescribeNodegroup",
+                "autoscaling:DescribeAutoScalingGroups",
+                "eks:ListUpdates",
+                "autoscaling:UpdateAutoScalingGroup",
+                "eks:DescribeAddonVersions",
+                "ses:ListIdentities",
+                "autoscaling:TerminateInstanceInAutoScalingGroup",
+                "iam:GetRole",
+                "eks:ListNodegroups",
+                "logs:DescribeLogGroups",
+                "ec2:DescribeLaunchTemplates",
+                "autoscaling:SetDesiredCapacity",
+                "ses:SendRawEmail",
+                "ses:GetIdentityVerificationAttributes",
+                "logs:CreateLogGroup",
+                "logs:PutLogEvents",
+                "config:DescribeConfigurationRecorderStatus",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeImages",
+                "eks:ListFargateProfiles",
+                "config:DescribeConfigurationRecorders",
+                "eks:DescribeUpdate",
+                "ses:DeleteIdentity",
+                "eks:DescribeCluster",
+                "sts:GetCallerIdentity",
+                "eks:ListClusters",
+                "ec2:DescribeSubnets"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+**Packages Required**
+
+``` 
+pip3 install boto3
+pip3 install kubernetes
+```
+
+**Folder Structure**
+
+```
+eksupdater/
+├── src/
+│   ├── s3Files/
+│   ├── boto_aws.py
+│   ├── eks_get_image_type.py
+│   ├── eksctlfinal.py
+│   └── ekslogs.py
+│   ├── k8s_client.py
+│   └── latest_ami.py
+│   ├── preflight_module.py
+│   └── self_managed.py
+├── eks_updater.py
+└── installer.py
+
+```
+
+**Running the script**
+
+```
+
+To Get Help Use [-h] 
+
+Usage :
+
+    eks-one-click-upgrade % python3 eks_updater.py -h 
+
+    usage: eks_updater.py [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
+                      [--eksctl] [--preflight] [--email EMAIL]
+                      name version region
+
+
+
+To Receive Email Report Use [ --email]
+
+Usage :
+
+    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --email okaboi@example.com
+
+
+
+
+To Skip The upgrade and if you only want to perform preflight check [ --preflight ]
+
+Usage :
+
+    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --email okaboi@example.com --preflight
+
+
+
+
+
+To Skip Vpc-cni Addon Upgrade use [ --pass_vpc ]
+
+Usage :
+
+    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --pass_vpc
+
+
+
+
+Add Number of retry you want the script to peform by default it is 2 [ --max_retry ]
+
+Usage :
+
+    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --max_retry 5
+
+
+
+
+To Utilize Force Pod Eviction when you Have Pdb (Pod disruption budget) [ --force]
+
+Usage :
+
+    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --pass_vpc
+
+```
+
+## Command Line Interface (CLI)
+<p style="text-align:center">
+<img src="./Images/CLI-1.png" height="800px"/>
+<img src="./Images/CLI-2.png" height="600px"/>
+</p>
+
+
 
 ## Security
 
