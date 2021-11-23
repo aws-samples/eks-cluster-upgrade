@@ -1,0 +1,53 @@
+{
+    "1.16": {
+      "ExtensionsV1beta1Api()": {
+        "NetworkingV1Api()": "networkpolicies",
+        "PolicyV1beta1Api()": "podsecuritypolicies",
+        "AppsV1Api()": "replicasets"
+      },
+      "AppsV1beta2Api()": {
+        "AppsV1Api()": "replicasets"
+      },
+      "AppsV1beta1Api()": {
+        "AppsV1Api()": "deployments"
+      }
+    },
+    "1.18": {
+      "ExtensionsV1beta1Api()": {
+        "NetworkingV1Api()": "networkpolicies",
+        "PolicyV1beta1Api()": "podsecuritypolicies",
+        "AppsV1Api()": "replicasets"
+      },
+      "all-resources": {
+        "apps/v1beta1": "apps/v1",
+        "apps/v1beta2": "apps/v1"
+      }
+    },
+    "1.17": {
+      "all-resources": {
+        "rbac.authorization.k8s.io/v1alpha1": "rbac.authorization.k8s.io/v1",
+        "rbac.authorization.k8s.io/v1beta1": "rbac.authorization.k8s.io/v1"
+      }
+    },
+    "1.19": {
+      "all-resources": {
+        "Apiextensions.k8s.io/v1beta1": "apiextensions.k8s.io/v1",
+        "Autoscaling/v2beta1": "autoscaling/v2beta2 ",
+        "Coordination.k8s.io/v1beta1": "v1 ",
+        "Authentication.k8s.io/v1beta1": "v1"
+      }
+    },
+   "1.21": {
+      "all-resources": {
+        "audit.k8s.io/v1beta1": "audit.k8s.io/v1",
+        "audit.k8s.io/v1alpha1": "audit.k8s.io/v1 ",
+        "discovery.k8s.io/v1beta1": "discovery.k8s.io/v1",
+        "batch/v2alpha1" : "permanent"
+      }
+    },
+    "1.20": {
+        "all-resources": {
+          "metrics/resource/v1alpha1": "metrics/resource"
+        }
+      }
+  }

@@ -1,0 +1,69 @@
+{
+  "preflight": {
+    "roles": [
+      "eks:fargate-manager",
+      "eks:node-bootstrapper",
+      "eks:node-manager",
+      "eks:podsecuritypolicy:privileged"
+    ],
+    "1.19": {
+      "eks:certificate-controller (Role)": "client.RbacAuthorizationV1Api().list_role_for_all_namespaces(field_selector='metadata.name=eks:certificate-controller')",
+      "eks:certificate-controller (Role Binding)": "client.RbacAuthorizationV1Api().list_role_binding_for_all_namespaces(field_selector='metadata.name=eks:certificate-controller')",
+      "eks:certificate-controller (Cluster Role Binding)": "client.RbacAuthorizationV1Api().list_cluster_role_binding(field_selector='metadata.name=eks:certificate-controller')",
+      "eks:addonmanager": "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:addon-manager' )"
+    },
+    "1.18": {
+      "eks:addonmanager": "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:addon-manager' )"
+    },
+    "1.20": {
+    "eks:certificate-controller-approver" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:certificate-controller-approver' )",
+    "eks:cluster-event-watcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:cluster-event-watcher' )",
+    "eks:fargate-scheduler" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:fargate-scheduler' )",
+    "eks:k8s-metrics" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:k8s-metrics' )",
+    "eks:nodewatcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:nodewatcher' )",
+    "eks:pod-identity-mutating-webhook" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:pod-identity-mutating-webhook' )"
+    },
+    "1.21": {
+      "eks:certificate-controller-approver" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:certificate-controller-approver' )",
+      "eks:cluster-event-watcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:cluster-event-watcher' )",
+      "eks:fargate-scheduler" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:fargate-scheduler' )",
+      "eks:k8s-metrics" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:k8s-metrics' )",
+      "eks:nodewatcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:nodewatcher' )",
+      "eks:pod-identity-mutating-webhook" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:pod-identity-mutating-webhook' )"
+      }
+  },
+  "postflight": {
+    "roles": [
+      "eks:fargate-manager",
+      "eks:node-bootstrapper",
+      "eks:node-manager",
+      "eks:podsecuritypolicy:privileged"
+    ],
+    "1.19": {
+      "eks:certificate-controller (Role)": "client.RbacAuthorizationV1Api().list_role_for_all_namespaces(field_selector='metadata.name=eks:certificate-controller')",
+      "eks:certificate-controller (Cluster Role Binding)": "client.RbacAuthorizationV1Api().list_cluster_role_binding(field_selector='metadata.name=eks:certificate-controller')",
+      "eks:addonmanager": "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:addon-manager' )"
+    },
+    "1.18": {
+      "eks:addonmanager": "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:addon-manager' )"
+    },
+    "1.20": {
+
+      "eks:certificate-controller-approver" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:certificate-controller-approver' )",
+
+      "eks:cluster-event-watcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:cluster-event-watcher' )",
+      "eks:fargate-scheduler" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:fargate-scheduler' )",
+      "eks:k8s-metrics" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:k8s-metrics' )",
+      "eks:nodewatcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:nodewatcher' )",
+      "eks:pod-identity-mutating-webhook" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:pod-identity-mutating-webhook' )"
+      },
+      "1.21": {
+        "eks:certificate-controller-approver" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:certificate-controller-approver' )",
+        "eks:cluster-event-watcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:cluster-event-watcher' )",
+        "eks:fargate-scheduler" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:fargate-scheduler' )",
+        "eks:k8s-metrics" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:k8s-metrics' )",
+        "eks:nodewatcher" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:nodewatcher' )",
+        "eks:pod-identity-mutating-webhook" : "client.RbacAuthorizationV1Api().list_cluster_role(field_selector='metadata.name=eks:pod-identity-mutating-webhook' )"
+        }
+  }
+}
