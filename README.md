@@ -61,7 +61,7 @@ After the pre-flight check is completed for the cluster an email is generated su
 
 ### Architecture
 
-<p style="text-align:center">
+<p align="center">
 <img src="./Images/architecture.png" height="600px"/>
 </p>
 
@@ -72,9 +72,11 @@ After the pre-flight check is completed for the cluster an email is generated su
 
 ### Workflow
 
-![Workflow](./Images/workflow.png)
+<p align="center">
+<img src="./Images/workflow.png"/>
+</p>
 
-### Usage of Playbook
+### How to use EKS One Click Upgrade via CLI
 
 **Editing**
 
@@ -246,7 +248,7 @@ Usage :
 ```
 
 ## Command Line Interface (CLI)
-<p style="text-align:center">
+<p align="center">
 <img src="./Images/CLI-1.png" height="800px"/>
 <img src="./Images/CLI-2.png" height="600px"/>
 </p>
