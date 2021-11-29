@@ -57,9 +57,9 @@ After the pre-flight check is completed for the cluster an email is generated su
 2. Identification of Managed and Self managed node - The worker nodes are identified as EKS managed and self managed to perform upgrade.
 3. Managed Node group update - updates managed node group to the specified version
 4. Self Managed Nodegroup update
-   * Launch new nodes with upgraded version and wait until they require ready status for next step.
-   * Mark existing nodes as un-schedulable
-   * If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the        flow.
+   - Launch new nodes with upgraded version and wait until they require ready status for next step.
+   - Mark existing nodes as un-schedulable
+   - If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the        flow.
   
 
 ### Objective 
@@ -272,6 +272,6 @@ This library is licensed under the MIT-0 License. See the LICENSE file.
 
 
 ### 🤝 Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-Please make sure to update tests as appropriate.
+* Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+* Please make sure to update tests as appropriate.
 
