@@ -1,5 +1,11 @@
 
-## EKS one click upgrade 
+
+<div align="center">
+  <h1> Amazon EKS One Click Upgrade   </h1>
+</div>
+
+<!-- 
+## EKS one click upgrade  -->
 
 <p align="center">
 <a href="">
@@ -87,9 +93,11 @@ After the pre-flight check is completed for the cluster an email is generated su
 ### How to use EKS One Click Upgrade via CLI
 
 
-``` 
+```zsh
 
-$ aws eks update-kubeconfig --name eks-cluster-name --region aws-region $ kubectl edit configmap aws-auth -n kube-system
+$ aws eks update-kubeconfig --name eks-cluster-name --region aws-region 
+$ kubectl edit configmap aws-auth -n kube-system
+
 Add the IAM user to mapUsers. For example:
 mapUsers: |
   - userarn: arn:aws:iam::XXXXXXXXXXXX:user/testuser
@@ -107,7 +115,7 @@ mapRoles: |
 
 **Roles and Policies required**
 
-``` 
+```json 
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -169,9 +177,9 @@ mapRoles: |
 
 **Packages Required**
 
-``` 
-pip3 install boto3
-pip3 install kubernetes
+```bash 
+$ pip3 install boto3
+$ pip3 install kubernetes
 ```
 
 **Folder Structure**
@@ -195,7 +203,7 @@ eksupdater/
 
 **Running the script**
 
-```
+```zsh
 
 To Get Help Use [-h] 
 
