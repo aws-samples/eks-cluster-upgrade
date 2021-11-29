@@ -3,13 +3,17 @@
 
 ## EKS one click upgrade 
 
-<table cellspacing="0" cellpadding="0">
-  <tr style="border: none;">
-    <td style="border: none;"><img src="https://forthebadge.com/images/badges/open-source.svg" ></td>
-    <td style="border: none;"><img src="http://ForTheBadge.com/images/badges/built-with-love.svg" ></td>
-    <td style="border: none;"><img src="http://ForTheBadge.com/images/badges/made-with-python.svg"></td>
-  </tr>
- </table>
+<p align="center">
+<a href="">
+    <img src="https://forthebadge.com/images/badges/open-source.svg" alt="Opensource eks" style="vertical-align:top; margin:4px">
+  </a>  
+  <a href="">
+    <img src="http://ForTheBadge.com/images/badges/built-with-love.svg" alt="Eks one click" style="vertical-align:top; margin:4px">
+  </a>  
+<a href="">
+    <img src="http://ForTheBadge.com/images/badges/made-with-python.svg" alt="kubernetes python" style="vertical-align:top; margin:4px">
+  </a>  
+</p>
 
 Amazon Elastic Kubernetes Service (Amazon EKS) is a managed service that you can use to run Kubernetes on AWS without needing to install, operate, and maintain your own Kubernetes control plane or nodes. Kubernetes is an open-source system for automating the deployment, scaling, and management of containerized applications.
 Working with EKS starts with creating a cluster and an Amazon EKS cluster consists of two primary components:
