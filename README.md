@@ -1,5 +1,3 @@
-[![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)]()
-
 
 ## EKS one click upgrade 
 
@@ -274,7 +272,6 @@ This library is licensed under the MIT-0 License. See the LICENSE file.
 
 
 ### 🤝 Contributing
-
-[![ForTheBadge built-with-love](http://ForTheBadge.com/images/badges/made-with-python.svg)]() 
-[![ForTheBadge built-with-love](http://ForTheBadge.com/images/badges/built-with-love.svg)]()
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Please make sure to update tests as appropriate.
 
