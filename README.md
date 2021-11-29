@@ -3,7 +3,13 @@
 
 ## EKS one click upgrade 
 
-TODO: Fill this README out!
+<table cellspacing="0" cellpadding="0">
+  <tr style="border: none;">
+    <td style="border: none;"><img src="https://forthebadge.com/images/badges/open-source.svg" ></td>
+    <td style="border: none;"><img src="http://ForTheBadge.com/images/badges/built-with-love.svg" ></td>
+    <td style="border: none;"><img src="http://ForTheBadge.com/images/badges/made-with-python.svg"></td>
+  </tr>
+ </table>
 
 Amazon Elastic Kubernetes Service (Amazon EKS) is a managed service that you can use to run Kubernetes on AWS without needing to install, operate, and maintain your own Kubernetes control plane or nodes. Kubernetes is an open-source system for automating the deployment, scaling, and management of containerized applications.
 Working with EKS starts with creating a cluster and an Amazon EKS cluster consists of two primary components:
@@ -14,7 +20,7 @@ Working with EKS starts with creating a cluster and an Amazon EKS cluster consis
 The current process of EKS cluster upgrade includes
 1. Check the Kubernetes object compatibility with regards to API specific Changes
 2. Check the version of Core Kubernetes Components and do changes as per the changes required in the newer
-version which is compatible with the targeted version.
+   version which is compatible with the targeted version.
 3. Check worker node version and control plane version and ensure that they are in same version
 4. Check Enough IPs are there in the Subnet and the Customer account has not reached the ENI limit
 5. Do Control Plane Upgrade
@@ -51,7 +57,7 @@ After the pre-flight check is completed for the cluster an email is generated su
 4. Self Managed Nodegroup update
    * Launch new nodes with upgraded version and wait until they require ready status for next step.
    * Mark existing nodes as un-schedulable
-   * If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the flow.
+   * If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the        flow.
   
 
 ### Objective 
@@ -78,7 +84,6 @@ After the pre-flight check is completed for the cluster an email is generated su
 
 ### How to use EKS One Click Upgrade via CLI
 
-**Editing**
 
 ``` 
 
