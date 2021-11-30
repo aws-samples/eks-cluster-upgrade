@@ -64,7 +64,7 @@ After the pre-flight check is completed for the cluster an email is generated su
 3. Managed Node group update - updates managed node group to the specified version
 4. Self Managed Nodegroup update
    - Launch new nodes with upgraded version and wait until they require ready status for next step.
-   - Mark existing nodes as un-schedulable
+   - Mark existing nodes as un-schedulable.
    - If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the        flow.
   
 
@@ -74,7 +74,7 @@ After the pre-flight check is completed for the cluster an email is generated su
 2. **To reduce manual effort and time** : To update an EKS cluster , customers have to manually perform every step which is quite time taking and also a hectic task so, our objective is to reduce that manual intervention and also to save customer’s time.
 
 ### Architecture
-
+This is the architecture of EKS One Click Upgrade:
 <p align="center">
 <img src="./Images/architecture.png" height="600px"/>
 </p>
