@@ -85,6 +85,8 @@ This is the architecture of EKS One Click Upgrade:
 ![Technologies Used ](./Images/technologies-used.png)
 
 ### Workflow
+Once the user executes the python script, a pre-flight check is initiated where multiple parameters and versions associated with the cluster are verified. If this check is performed successfully, then the upgrade workflow will be initiated and the cluster along with its components will be upgraded to the target version. After the upgradation process, a final check is done and an email is generated summarizing the details of cluster.
+
 
 <p align="center">
 <img src="./Images/workflow.png"/>
