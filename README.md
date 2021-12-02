@@ -117,6 +117,12 @@ mapRoles: |
 
 **Roles and Policies required**
 
+In order to proceed with the upgrade and preflight workflow for your EKS cluster, below mentioned permissions are required as part of the IAM user being used to complete with the process. Below mentioned IAM policy can be used to attach to a user in order to grant access to required AWS service and related actions to complete the processs for eks-one-click upgrade
+
+For more information related to steps on how to create and attach IAM policy, you can follow the below mentioned steps in AWS Documentation 
+
+https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-and-attach-iam-policy.html
+
 ```json 
 {
     "Version": "2012-10-17",
