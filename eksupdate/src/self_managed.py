@@ -75,13 +75,14 @@ def lt_id_func(Clustername,Nodegroup,Version,regionName):
         clusterName=Clustername,
         nodegroupName=Nodegroup
     )
-    
-    AmiType,Lt_id,version_no=res['nodegroup']['amiType'],res['nodegroup']['launchTemplate']['id'],res['nodegroup']['launchTemplate']['version']
-
-    os_lt=ec2.describe_launch_template_versions(
-    LaunchTemplateId=Lt_id,
-    Versions=[version_no]
-    )
+    Lt_id=""
+    version_no=""
+    AmiType=res['nodegroup']['amiType']
+    if res["nodegroup"].get("launchTemplate"):
+        Lt_id,version_no=res['nodegroup']['launchTemplate']['id'],res['nodegroup']['launchTemplate']['version']
+        os_lt=ec2.describe_launch_template_versions(
+        LaunchTemplateId=Lt_id,
+        Versions=[version_no])
     latest_ami=""
     if AmiType=="CUSTOM":
         current_ami=os_lt['LaunchTemplateVersions'][0]['LaunchTemplateData']['ImageId']
