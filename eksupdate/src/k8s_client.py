@@ -292,7 +292,7 @@ def update_addons(cluster_name, version,vpcPass,regionName):
                         name="coredns", namespace='kube-system', body=body, pretty=True)
                     if vv <=170:
                         coredns_yaml = open("eksupdate/src/S3Files/core-dns.yaml", 'r') 
-                        body= yaml.load(coredns_yaml,Loader=yaml.FullLoader)
+                        body= yaml.safe_load(coredns_yaml)
                         v1.patch_namespaced_config_map(name="coredns",namespace="kube-system",body=body)
                     flag_core=False
                 time.sleep(20)
@@ -341,7 +341,7 @@ def update_addons(cluster_name, version,vpcPass,regionName):
                 print(pod.metadata.name ,"Current Version = ", image.split(":")[-1],"Updating To = " ,"v"+cni_new)
                 if flag_vpc:
                     vpc_cni_yaml = open("eksupdate/src/S3Files/vpc-cni.yaml", 'r') 
-                    body= yaml.load(vpc_cni_yaml,Loader=yaml.FullLoader)
+                    body= yaml.safe_load(vpc_cni_yaml)
                     body['spec']['template']['spec']['containers'][0]['image']=image.split(":")[0]+":v"+cni_new
                     old=body['spec']['template']['spec']['initContainers'][0]['image']
                     body['spec']['template']['spec']['initContainers'][0]['image']=old.split(":")[0]+":v"+cni_new

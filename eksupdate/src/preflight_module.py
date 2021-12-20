@@ -396,7 +396,7 @@ def addon_version(log_details,errors,cluster_name,region,cluster_details,report,
     # kube_proxy_config_map = json.loads(kube_proxy_config_map)
     f = open('eksupdate/src/S3Files/kube-proxy-configmap.json',)
     kube_proxy_config_map = json.load(f)
-    config_map['certificate-authority'] = yaml.load(kube_proxy_config_map['data']['kubeconfig'], Loader=yaml.FullLoader)['clusters'][0]['cluster']['certificate-authority']
+    config_map['certificate-authority'] = yaml.safe_load(kube_proxy_config_map['data']['kubeconfig'])['clusters'][0]['cluster']['certificate-authority']
 
     # Core DNS config map YAML
     # core_dns_config_map = s3.Object('eks-one-click-upgrade', 'configMap/coredns.json')
@@ -619,8 +619,8 @@ def check_addons_params(log_details,config,name,cluster_details,config_map,yaml_
         v1 = client.CoreV1Api()
         default = []
         ret = v1.list_config_map_for_all_namespaces(field_selector = 'metadata.name=coredns')
-        corefile = yaml.load(ret.items[0].data['Corefile'], Loader=yaml.FullLoader).split('.:53')[1]
-        for i in arr :
+        corefile = yaml.safe_load(ret.items[0].data['Corefile']).split('.:53')[1]
+        for i in arr:
             if corefile.find(i) == -1 : 
                 default.append(i)
                 log_pusher(log_details,cluster_name,region,i + 'doesnt exist in corefile')
@@ -654,7 +654,7 @@ def check_addons_params(log_details,config,name,cluster_details,config_map,yaml_
         customer_report['addons'][name]["server-endpoint"] = {}
         v1 = client.CoreV1Api()
         ret = v1.list_config_map_for_all_namespaces(field_selector = 'metadata.name=kube-proxy')
-        if yaml.load(ret.items[0].data['kubeconfig'],Loader=yaml.FullLoader)['clusters'][0]['cluster']['certificate-authority'] == config_map['certificate-authority'] : 
+        if yaml.safe_load(ret.items[0].data['kubeconfig'])['clusters'][0]['cluster']['certificate-authority'] == config_map['certificate-authority'] : 
             report['addon_params'][name]["certificate-authority"]['verified'] = True
             customer_report['addons'][name]["certificate-authority"]['message'] = 'Certificate Authority Verified in kube config'
             report['addon_params'][name]["certificate-authority"]['certificate'] = config_map['certificate-authority']
@@ -663,14 +663,14 @@ def check_addons_params(log_details,config,name,cluster_details,config_map,yaml_
         else : 
             customer_report['addons'][name]["certificate-authority"]['message'] = 'Certificate Verification failed in kube config'
             report['addon_params'][name]["certificate-authority"]['verified'] = False
-            report['addon_params'][name]["certificate-authority"]['certificate'] = yaml.load(ret.items[0].data['kubeconfig'],Loader=yaml.FullLoader)['clusters'][0]['cluster']['certificate-authority']
+            report['addon_params'][name]["certificate-authority"]['certificate'] = yaml.safe_load(ret.items[0].data['kubeconfig'])['clusters'][0]['cluster']['certificate-authority']
             log_pusher(log_details,cluster_name,region,'Certificate Verification failed in kube config')
             print('Certificate Verification failed in kube config')
         # pprint(yaml.load(ret.items[0].data['kubeconfig'])['clusters'][0]['cluster']['server'])
         # pprint(yaml.load(ret.items[0].data['kubeconfig'])['clusters'][0]['cluster']['certificate-authority'])
         # pprint(config_map['certificate-authority'])
         server_endpoint = cluster_details['cluster']['endpoint']
-        if yaml.load(ret.items[0].data['kubeconfig'], Loader=yaml.FullLoader)['clusters'][0]['cluster']['server'] == cluster_details['cluster']['endpoint'].lower():
+        if yaml.safe_load(ret.items[0].data['kubeconfig'])['clusters'][0]['cluster']['server'] == cluster_details['cluster']['endpoint'].lower():
             customer_report['addons'][name]["server-endpoint"]['message'] = 'Server end point verified' 
             report['addon_params'][name]["server-endpoint"]['verified'] = True
             report['addon_params'][name]["server-endpoint"]['server-endpoint'] = cluster_details['cluster']['endpoint'].lower()
@@ -679,7 +679,7 @@ def check_addons_params(log_details,config,name,cluster_details,config_map,yaml_
         else :
             customer_report['addons'][name]["server-endpoint"]['message'] = 'Server end point verification failed'
             report['addon_params'][name]["certificate-authority"]['verified'] = False
-            report['addon_params'][name]["certificate-authority"]['server-endpoint'] = yaml.load(ret.items[0].data['kubeconfig'], Loader=yaml.FullLoader)['clusters'][0]['cluster']['server']
+            report['addon_params'][name]["certificate-authority"]['server-endpoint'] = yaml.safe_load(ret.items[0].data['kubeconfig'])['clusters'][0]['cluster']['server']
             log_pusher(log_details,cluster_name,region,' Server end point verification failed')
             print(' Server end point verification failed')
     
