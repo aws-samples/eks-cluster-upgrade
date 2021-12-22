@@ -83,5 +83,3 @@ def logs_pusher(regionName,cluster_name,msg):
   
 
         return
-    return "Logs Are Initialized"
-
