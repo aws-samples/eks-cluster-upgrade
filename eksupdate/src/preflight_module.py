@@ -124,7 +124,7 @@ def get_cluster_version(preflight,log_details,errors,cluster_name,region,pass_vp
                 log_pusher(log_details,cluster_name,region,'Cluster already upgraded to version' + cluster_details['cluster']['version'])
                 print('Cluster already upgraded to version ' + cluster_details['cluster']['version'])
                 customer_report['cluster upgradation'] = 'Cluster already upgraded to version ' + cluster_details['cluster']['version']
-            elif (round(float(update_version) - float(cluster_details['cluster']['version']),2)) == 0.01 and float(update_version) < 1.22:
+            elif (round(float(update_version) - float(cluster_details['cluster']['version']),2)) == 0.01 and float(update_version) < 1.25:
                 log_pusher(log_details,cluster_name,region,'Cluster with verison ' + cluster_details['cluster']['version'] + " can be updated to target version " + update_version)
                 print('Cluster with verison ' + cluster_details['cluster']['version'] + " can be updated to target version " + update_version)
                 customer_report['cluster upgradation'] = 'Cluster with verison ' + cluster_details['cluster']['version'] + " can be updated to target version " + update_version
