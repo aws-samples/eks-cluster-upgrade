@@ -1,4 +1,16 @@
 {
+    "1.23": {
+        "kube-proxy": "1.23.7-minimal-eksbuild.1",
+        "coredns": "1.8.7-eksbuild.2",
+        "vpc-cni": "1.11.3-eksbuild.1",
+        "cluster-autoscaler": "1.22.2"
+    },   
+    "1.22": {
+        "kube-proxy": "1.22.11-eksbuild.2",
+        "coredns": "1.8.7",
+        "vpc-cni": "1.11.3-eksbuild.1",
+        "cluster-autoscaler": "1.22.2"
+    },    
     "1.21": {
         "kube-proxy": "1.21.2",
         "coredns": "1.8.4",
