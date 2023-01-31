@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/aws-samples/amazon-eks-one-click-cluster-upgrade/discussions/new
+    about: Ask a general question about Amazon EKS one click cluster upgrade
