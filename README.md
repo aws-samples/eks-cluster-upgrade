@@ -1,21 +1,14 @@
-
-
-<div align="center">
-  <h1> Amazon EKS One Click Upgrade   </h1>
-</div>
-
-<!-- 
-## EKS one click upgrade  -->
+# Amazon EKS Upgrade Utility
 
 <p align="center">
 <a href="">
     <img src="https://forthebadge.com/images/badges/open-source.svg" alt="Opensource eks" style="vertical-align:top; margin:4px">
   </a>  
   <a href="">
-    <img src="http://ForTheBadge.com/images/badges/built-with-love.svg" alt="Eks one click" style="vertical-align:top; margin:4px">
+    <img src="https://ForTheBadge.com/images/badges/built-with-love.svg" alt="Eks one click" style="vertical-align:top; margin:4px">
   </a>  
 <a href="">
-    <img src="http://ForTheBadge.com/images/badges/made-with-python.svg" alt="kubernetes python" style="vertical-align:top; margin:4px">
+    <img src="https://ForTheBadge.com/images/badges/made-with-python.svg" alt="kubernetes python" style="vertical-align:top; margin:4px">
   </a>  
 </p>
 
@@ -25,7 +18,8 @@ Working with EKS starts with creating a cluster and an Amazon EKS cluster consis
 1. Amazon EKS control plane
 2. Amazon EKS nodes that are registered with the control plane
 
-The current process of EKS cluster upgrade includes
+The current process of EKS cluster upgrade includes:
+
 1. Check the Kubernetes object compatibility with regards to API specific Changes
 2. Check the version of Core Kubernetes Components and do changes as per the changes required in the newer
    version which is compatible with the targeted version.
@@ -66,27 +60,26 @@ After the pre-flight check is completed for the cluster an email is generated su
    - Launch new nodes with upgraded version and wait until they require ready status for next step.
    - Mark existing nodes as un-schedulable.
    - If pod disruption budget (PDB) is present then check for force eviction flag (--force) which is given by user, only then evit the pods or continue with the        flow.
-  
 
-### Objective 
+### Objective
 
 1. **To upgrade the cluster in one click** : There are many steps involved in updating a cluster and our main objective is to automate all the steps involved in EKS Cluster Upgradation to one click.
 2. **To reduce manual effort and time** : To update an EKS cluster , customers have to manually perform every step which is quite time taking and also a hectic task so, our objective is to reduce that manual intervention and also to save customer’s time.
 
 ### Architecture
+
 This is the architecture of EKS One Click Upgrade:
 <p align="center">
 <img src="./Images/architecture.png" height="600px"/>
 </p>
-
 
 ### Components used
 
 ![Technologies Used ](./Images/technologies-used.png)
 
 ### Workflow
-Once the user executes the python script, a pre-flight check is initiated where multiple parameters and versions associated with the cluster are verified. If this check is performed successfully, then the upgrade workflow will be initiated and the cluster along with its components will be upgraded to the target version. After the upgradation process, a final check is done and an email is generated summarizing the details of cluster.
 
+Once the user executes the python script, a pre-flight check is initiated where multiple parameters and versions associated with the cluster are verified. If this check is performed successfully, then the upgrade workflow will be initiated and the cluster along with its components will be upgraded to the target version. After the upgradation process, a final check is done and an email is generated summarizing the details of cluster.
 
 <p align="center">
 <img src="./Images/workflow.png"/>
@@ -94,13 +87,12 @@ Once the user executes the python script, a pre-flight check is initiated where 
 
 ### How to use EKS One Click Upgrade via CLI
 
-
 ```zsh
 
 $ aws eks update-kubeconfig --name eks-cluster-name --region aws-region 
 $ kubectl edit configmap aws-auth -n kube-system
 
-Add the IAM user to mapUsers. For example:
+# Add the IAM user to mapUsers. For example:
 mapUsers: |
   - userarn: arn:aws:iam::XXXXXXXXXXXX:user/testuser
 username: testuser
@@ -112,18 +104,17 @@ mapRoles: |
     username: testrole
     groups:
       - system:masters
-
 ```
 
-**Roles and Policies required**
+### Roles and Policies required
 
 In order to proceed with the upgrade and preflight workflow for your EKS cluster, below mentioned permissions are required as part of the IAM user being used to complete with the process. Below mentioned IAM policy can be used to attach to a user in order to grant access to required AWS service and related actions to complete the processs for eks-one-click upgrade
 
-For more information related to steps on how to create and attach IAM policy, you can follow the below mentioned steps in AWS Documentation 
+For more information related to steps on how to create and attach IAM policy, you can follow the below mentioned steps in AWS Documentation
 
-https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-and-attach-iam-policy.html
+[https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-and-attach-iam-policy.html](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-and-attach-iam-policy.html)
 
-```json 
+```json
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -183,33 +174,33 @@ https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-
 }
 ```
 
-**Packages Required**
+### Folder Structure
 
-```bash 
-$ pip3 install boto3
-$ pip3 install kubernetes
-```
-
-**Folder Structure**
-
-```
-eksupdater/
+```bash
+eks-upgrade/
 ├── src/
-│   ├── s3Files/
+│   ├── S3Files/
+│   ├── __init__.py
 │   ├── boto_aws.py
 │   ├── eks_get_image_type.py
 │   ├── eksctlfinal.py
-│   └── ekslogs.py
+│   ├── ekslogs.py
 │   ├── k8s_client.py
-│   └── latest_ami.py
+│   ├── latest_ami.py
 │   ├── preflight_module.py
 │   └── self_managed.py
-├── eks_updater.py
-└── installer.py
-
+├── __init__.py
+├── cli.py
+└── starter.py
 ```
 
-**Running the script**
+## Installation
+
+```zsh
+pip install eksupgrade
+```
+
+## Usage
 
 ```zsh
 
@@ -217,66 +208,50 @@ To Get Help Use [-h]
 
 Usage :
 
-    eks-one-click-upgrade % python3 eks_updater.py -h 
+    eks-one-click-upgrade % eksupgrade -h 
 
-    usage: eks_updater.py [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
-                      [--eksctl] [--preflight] [--email EMAIL]
-                      name version region
-
-
+    usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
+                     [--eksctl] [--preflight] [--email EMAIL]
+                     name version region
 
 To Receive Email Report Use [ --email]
 
 Usage :
 
-    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --email okaboi@example.com
-
-
-
+    eks-one-click-upgrade % eksupgrade Cluster_Name new_Version aws_Region --email okaboi@example.com
 
 To Skip The upgrade and if you only want to perform preflight check [ --preflight ]
 
 Usage :
 
-    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --email okaboi@example.com --preflight
-
-
-
-
+    eks-one-click-upgrade % eksupgrade Cluster_Name new_Version aws_Region --email okaboi@example.com --preflight
 
 To Skip Vpc-cni Addon Upgrade use [ --pass_vpc ]
 
 Usage :
 
-    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --pass_vpc
-
-
-
+    eks-one-click-upgrade % eksupgrade Cluster_Name new_Version aws_Region --pass_vpc
 
 Add Number of retry you want the script to peform by default it is 2 [ --max_retry ]
 
 Usage :
 
-    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --max_retry 5
-
-
-
+    eks-one-click-upgrade % eksupgrade Cluster_Name new_Version aws_Region --max_retry 5
 
 To Utilize Force Pod Eviction when you Have Pdb (Pod disruption budget) [ --force]
 
 Usage :
 
-    eks-one-click-upgrade % python3 eks_updater.py Cluster_Name new_Version aws_Region --pass_vpc
+    eks-one-click-upgrade % eksupgrade Cluster_Name new_Version aws_Region --pass_vpc
 
 ```
 
 ## Command Line Interface (CLI)
+
 <p align="center">
 <img src="./Images/CLI-1.png" height="800px"/>
 <img src="./Images/CLI-2.png" height="600px"/>
 </p>
-
-
 
 ## Security
 
@@ -284,10 +259,9 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
-
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
 
 ### 🤝 Contributing
-* Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-* Please make sure to update tests as appropriate.
 
+- Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+- Please make sure to update tests as appropriate.

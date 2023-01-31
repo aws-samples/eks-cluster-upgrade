@@ -260,7 +260,8 @@ def update_addons(cluster_name, version, vpcPass, regionName):
     v1 = client.CoreV1Api()
     api_instance = client.AppsV1Api()
     rep = v1.list_namespaced_pod("kube-system")
-    add_on_dict = open("eksupdate/src/S3Files/version_dict.json", "r")
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
+    add_on_dict = open("eksupgrade/src/S3Files/version_dict.json", "r")
     add_on_dict = json.load(add_on_dict)
     old_pods_name = []
 
@@ -313,7 +314,8 @@ def update_addons(cluster_name, version, vpcPass, regionName):
                         name="coredns", namespace="kube-system", body=body, pretty=True
                     )
                     if vv <= 170:
-                        coredns_yaml = open("eksupdate/src/S3Files/core-dns.yaml", "r")
+                        # TODO: Make this load safe.  This file is never closed. Use context manager instead.
+                        coredns_yaml = open("eksupgrade/src/S3Files/core-dns.yaml", "r")
                         body = yaml.safe_load(coredns_yaml)
                         v1.patch_namespaced_config_map(name="coredns", namespace="kube-system", body=body)
                     flag_core = False
@@ -428,7 +430,8 @@ def update_addons(cluster_name, version, vpcPass, regionName):
             elif "aws-node" in pod.metadata.name and image.split(":")[-1] != "v" + cni_new and not vpcPass:
                 print(pod.metadata.name, "Current Version = ", image.split(":")[-1], "Updating To = ", "v" + cni_new)
                 if flag_vpc:
-                    vpc_cni_yaml = open("eksupdate/src/S3Files/vpc-cni.yaml", "r")
+                    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
+                    vpc_cni_yaml = open("eksupgrade/src/S3Files/vpc-cni.yaml", "r")
                     body = yaml.safe_load(vpc_cni_yaml)
                     body["spec"]["template"]["spec"]["containers"][0]["image"] = image.split(":")[0] + ":v" + cni_new
                     old = body["spec"]["template"]["spec"]["initContainers"][0]["image"]

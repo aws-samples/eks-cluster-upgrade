@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "eks-update"
+name = "eksupgrade"
 version = "0.1.0"
 description = "The Amazon EKS cluster upgrade utility"
 authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
 readme = "README.md"
-packages = [{include = "eksupdate"}]
+packages = [{include = "eksupgrade"}]
 license = "MIT-0"
-keywords = ["amazon", "aws", "aws-samples", "eks", "kubernetes", "upgrade"]
+keywords = ["amazon", "aws", "aws-samples", "eks", "kubernetes", "upgrade", "eksupgrade"]
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
@@ -20,7 +20,7 @@ include = [
 ]
 
 [tool.poetry.scripts]
-eksupdate = "eksupdate.cli:entry"
+eksupgrade = "eksupgrade.cli:entry"
 
 # Styling and linting Configurations
 [tool.isort]

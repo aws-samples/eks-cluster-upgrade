@@ -321,8 +321,9 @@ def cluster_roles(preflight, log_details, errors, cluster_name, region, report, 
     # cluster_roles_list = s3.Object('eks-one-click-upgrade', 'cluster_roles.json')
     # cluster_roles_list = cluster_roles_list.get()['Body'].read().decode('utf-8')
     # cluster_roles_list = json.loads(cluster_roles_list)
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/cluster_roles.json",
+        "eksupgrade/src/S3Files/cluster_roles.json",
     )
     cluster_roles_list = json.load(f)
     # print(cluster_roles_list)
@@ -465,8 +466,9 @@ def addon_version(log_details, errors, cluster_name, region, cluster_details, re
     # version_dict = json.loads(version_dict)
     # print(version_dict)
 
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/version_dict.json",
+        "eksupgrade/src/S3Files/version_dict.json",
     )
     version_dict = json.load(f)
 
@@ -474,8 +476,9 @@ def addon_version(log_details, errors, cluster_name, region, cluster_details, re
     # kube_proxy_config = s3.Object('eks-one-click-upgrade', 'addons/kube-proxy.json')
     # kube_proxy_config = kube_proxy_config.get()['Body'].read().decode('utf-8')
     # kube_proxy_config = json.loads(kube_proxy_config)
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/kube-proxy.json",
+        "eksupgrade/src/S3Files/kube-proxy.json",
     )
     kube_proxy_config = json.load(f)
     kube_proxy_container = kube_proxy_config["spec"]["template"]["spec"]["containers"][0]
@@ -490,8 +493,9 @@ def addon_version(log_details, errors, cluster_name, region, cluster_details, re
     # core_dns_config = s3.Object('eks-one-click-upgrade', 'addons/coredns.json')
     # core_dns_config = core_dns_config.get()['Body'].read().decode('utf-8')
     # core_dns_config = json.loads(core_dns_config)
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/coredns.json",
+        "eksupgrade/src/S3Files/coredns.json",
     )
     core_dns_config = json.load(f)
     coredns_container = core_dns_config["spec"]["template"]["spec"]["containers"][0]
@@ -506,8 +510,9 @@ def addon_version(log_details, errors, cluster_name, region, cluster_details, re
     # vpc_cni_config = s3.Object('eks-one-click-upgrade', 'addons/vpc-cni.json')
     # vpc_cni_config = vpc_cni_config.get()['Body'].read().decode('utf-8')
     # vpc_cni_config = json.loads(vpc_cni_config)
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/vpc-cni.json",
+        "eksupgrade/src/S3Files/vpc-cni.json",
     )
     vpc_cni_config = json.load(f)
     vpc_cni_container = vpc_cni_config["spec"]["template"]["spec"]["containers"][0]
@@ -522,8 +527,9 @@ def addon_version(log_details, errors, cluster_name, region, cluster_details, re
     # kube_proxy_config_map = s3.Object('eks-one-click-upgrade', 'configMap/kube-proxy.json')
     # kube_proxy_config_map = kube_proxy_config_map.get()['Body'].read().decode('utf-8')
     # kube_proxy_config_map = json.loads(kube_proxy_config_map)
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/kube-proxy-configmap.json",
+        "eksupgrade/src/S3Files/kube-proxy-configmap.json",
     )
     kube_proxy_config_map = json.load(f)
     config_map["certificate-authority"] = yaml.safe_load(kube_proxy_config_map["data"]["kubeconfig"])["clusters"][0][
@@ -1095,8 +1101,9 @@ def depricated_api_check(log_details, errors, cluster_name, region, report, cust
     # depricated_api = s3.Object('eks-one-click-upgrade', 'depricatedApi')
     # depricated_api = depricated_api.get()['Body'].read().decode('utf-8')
     # depricated_api = json.loads(depricated_api)
+    # TODO: Make this load safe.  This file is never closed. Use context manager instead.
     f = open(
-        "eksupdate/src/S3Files/depricatedApi",
+        "eksupgrade/src/S3Files/depricatedApi",
     )
     depricated_api = json.load(f)
     # print(depricated_api)
