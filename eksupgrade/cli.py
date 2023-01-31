@@ -1,28 +1,29 @@
 import argparse
 
-from eksupdate.starter import main
+from eksupgrade.starter import main
 
 
 def entry():
     example_text = """
 example:
 
-             python3 eks_updater.py Name_Of_Cluster new_Version Region
+            eksupgrade name_of_cluster new_version region
 
 
-Force Pod Eviction when you Have Pdb (Pod disruption budget):
+Force pod eviction when you have PDB (Pod Disruption Budget):
 
-   -> python3 eks_updater.py Cluster_Name new_Version aws_Region --force 
+    -> eksupgrade cluster_name new_version aws_region --force 
 
-Skip Vpc Cni Upgrade:
+Skip VPC CNI upgrade:
 
-   -> python3 eks_updater.py Cluster_Name new_Version aws_Region --pass_vpc 
+    -> eksupgrade cluster_name new_version aws_region --pass_vpc 
 
-Skip Upgrade Work Flow:
+Skip upgrade workflow:
 
-   -> python3 eks_updater.py Cluster_Name new_Version aws_Region --preflight 
+    -> eksupgrade cluster_name new_version aws_region --preflight 
 
- """
+"""
+
     regions_list = [
         "af-south-1",
         "eu-north-1",

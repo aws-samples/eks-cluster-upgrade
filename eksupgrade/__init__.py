@@ -1,0 +1,8 @@
+"""Initialize the eksupgrade module.
+
+Attributes:
+    __version__: The version of the eksupgrade module.
+
+"""
+
+__version__: str = "0.1.0"
