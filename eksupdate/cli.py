@@ -1,6 +1,8 @@
 from eksupdate.starter import main
 import argparse
-if __name__ == "__main__":
+
+
+def entry():
     example_text = '''
 example:
 
@@ -39,4 +41,6 @@ Skip Upgrade Work Flow:
     args = parser.parse_args()
     main(args)
 
-       
+
+if __name__ == "__main__":
+   entry()

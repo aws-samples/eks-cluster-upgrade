@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "eks-update"
+version = "0.1.0"
+description = "The Amazon EKS cluster upgrade utility"
+authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
+readme = "README.md"
+packages = [{include = "eksupdate"}]
+license = "MIT-0"
+keywords = ["amazon", "aws", "aws-samples", "eks", "kubernetes", "upgrade"]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "License :: OSI Approved :: MIT No Attribution License (MIT-0)",
+]
+include = [
+    "README.md",
+    "LICENSE",
+]
+
+[tool.poetry.scripts]
+eksupdate = "eksupdate.cli:entry"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+boto3 = "^1.26.60"
+kubernetes = "^25.3.0"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2.1"
+pytest-cov = "^4.0.0"
+coverage = "^7.1.0"
+
+
+[tool.poetry.group.dev.dependencies]
+isort = {extras = ["toml"], version = "^5.12.0"}
+black = "^22.12.0"
+pydocstyle = "^6.3.0"
+pylint = "^2.15.10"
+mypy = "^0.991"
+
+
+[tool.poetry.group.security.dependencies]
+safety = "^2.3.5"
+bandit = "^1.7.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
