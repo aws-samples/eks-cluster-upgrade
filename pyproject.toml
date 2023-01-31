@@ -22,6 +22,25 @@ include = [
 [tool.poetry.scripts]
 eksupdate = "eksupdate.cli:entry"
 
+# Styling and linting Configurations
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
+
+[tool.pylint]
+max-line-length = 120
+
+[tool.pylint.messages_control]
+max-line-length = 120
+
+[tool.pylint.format]
+max-line-length = 120
+max-module-lines = 1000
+
 [tool.poetry.dependencies]
 python = "^3.8"
 boto3 = "^1.26.60"
