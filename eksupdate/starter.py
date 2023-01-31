@@ -1,11 +1,9 @@
-from platform import python_branch, version
 from .src.boto_aws import update_cluster, is_cluster_exists, get_Asgs, outdated_lt, addAutoScaling, add_node, get_num_of_instances, get_latest_instance, wait_for_ready, get_outdated_Asg, worker_terminate, status_of_cluster,check_asg_autoscaler,enable_disable_autoscaler
 import time
 import datetime
 from .src.k8s_client import find_node, drain_nodes, unschedule_old_nodes, update_addons, delete_node,is_cluster_auto_scaler_present,clus_auto_enable_disable
 from .src.self_managed import get_node_groups, Update_nodeGroup, get_asg_node_groups,filter_node_groups
 from .src.latest_ami import get_latestami
-import argparse
 from .src.eks_get_image_type import get_ami_name
 from .src.preflight_module import pre_flight_checks
 from .src.ekslogs import logs_pusher
