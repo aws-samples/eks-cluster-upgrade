@@ -32,8 +32,6 @@ def Desc_node_groups(Clustername, Nodegroup, regionName):
     client = boto3.client("eks", region_name=regionName)
     """ Getting Descrption of Node Gorup """
     response = client.describe_nodegroup(clusterName=Clustername, nodegroupName=Nodegroup)
-    # print(response)
-    # print(response.get('nodegroup')['version'])
     logs_pusher(
         regionName=regionName,
         cluster_name=Clustername,
@@ -66,8 +64,7 @@ def get_asg_node_groups(Clustername, regionName):
 
 
 def filter_node_groups(cluster_name, node_list, latest_version, regionName):
-    client = boto3.client("eks", region_name=regionName)
-    """ filtering Node groups """
+    """filtering Node groups"""
     old_ng = []
     for ng in node_list:
         print("filter node group ", ng)
@@ -84,7 +81,6 @@ def filter_node_groups(cluster_name, node_list, latest_version, regionName):
 
 
 def lt_id_func(Clustername, Nodegroup, Version, regionName):
-
     client = boto3.client("eks", region_name=regionName)
     ec2 = boto3.client("ec2", region_name=regionName)
     res = client.describe_nodegroup(clusterName=Clustername, nodegroupName=Nodegroup)
@@ -97,10 +93,7 @@ def lt_id_func(Clustername, Nodegroup, Version, regionName):
     latest_ami = ""
     if AmiType == "CUSTOM":
         current_ami = os_lt["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"]
-
-        os_type = ec2.describe_images(ImageIds=[current_ami,],)["Images"][
-            0
-        ]["ImageLocation"]
+        os_type = ec2.describe_images(ImageIds=[current_ami])["Images"][0]["ImageLocation"]
 
         if isinstance(os_type, str) and "Windows_Server" in os_type:
             os_type = os_type[:46]
@@ -113,7 +106,6 @@ def lt_id_func(Clustername, Nodegroup, Version, regionName):
 
 
 def update_current_launch_template_ami(lt_id, latest_ami, regionName):
-
     ec2 = boto3.client("ec2", region_name=regionName)
     response = ec2.create_launch_template_version(
         LaunchTemplateId=lt_id,
@@ -129,7 +121,7 @@ def Update_nodeGroup(Clustername, Nodegroup, Version, regionName):
     start = time.time()
     """ updating Node group """
 
-    ami_type, lt_id, old_version, latest_ami = lt_id_func(Clustername, Nodegroup, Version, regionName)
+    ami_type, lt_id, _, latest_ami = lt_id_func(Clustername, Nodegroup, Version, regionName)
     if ami_type == "CUSTOM":
         update_current_launch_template_ami(lt_id, latest_ami, regionName)
 
@@ -152,7 +144,6 @@ def Update_nodeGroup(Clustername, Nodegroup, Version, regionName):
                         nodegroupName=Nodegroup,
                         version=Version,
                     )
-                started = time.time()
                 print("Updating Node Group ", Nodegroup)
                 time.sleep(20)
             if Desc_node_groups(Clustername, Nodegroup, regionName)[0] == "UPDATING":

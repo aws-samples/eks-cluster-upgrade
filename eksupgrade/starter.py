@@ -52,8 +52,7 @@ class StatsWorker(threading.Thread):
                     cluster_name=cluster_name,
                     msg="Updating Node Group {ng} To version {versi}".format(ng=ng_name, versi=to_update),
                 )
-                out = Update_nodeGroup(cluster_name, ng_name, to_update, regionName)
-                # Update_nodeGroup(cluster_name, ng_name, to_update,regionName)
+                Update_nodeGroup(cluster_name, ng_name, to_update, regionName)
                 end = time.time()
                 hours, rem = divmod(end - start, 3600)
                 minutes, seconds = divmod(rem, 60)
@@ -75,7 +74,7 @@ class StatsWorker(threading.Thread):
                     cluster_name=cluster_name,
                     msg="Updating Node Group {ng} To version {versi}".format(ng=ng_name, versi=to_update),
                 )
-                out = actual_update(
+                actual_update(
                     cluster_name=cluster_name,
                     asg_iter=ng_name,
                     to_update=to_update,
@@ -147,13 +146,17 @@ def actual_update(cluster_name, asg_iter, to_update, regionName, max_retry, forc
                 time.sleep(30)
                 wait_for_ready(latest_instance, regionName)
 
-            old_pod_id = find_node(cluster_name=cluster_name, instance_id=instance, op="find", regionName=regionName)
+            old_pod_id = find_node(
+                cluster_name=cluster_name, instance_id=instance, operation="find", region_name=regionName
+            )
             if old_pod_id != "NAN":
                 retry = 0
                 flag = 0
                 while retry <= max_retry:
                     if (
-                        not find_node(cluster_name=cluster_name, instance_id=instance, op="find", regionName=regionName)
+                        not find_node(
+                            cluster_name=cluster_name, instance_id=instance, operation="find", region_name=regionName
+                        )
                         == "NAN"
                     ):
                         flag = 1
@@ -201,7 +204,6 @@ def actual_update(cluster_name, asg_iter, to_update, regionName, max_retry, forc
 
 def main(args):
     try:
-
         cluster_name = args.name
         to_update = args.version
         pass_vpc = args.pass_vpc
@@ -210,7 +212,8 @@ def main(args):
         presentversion = "NAN"
         isPresent = False
         forced = args.force
-        parlleld = args.parallel
+        paralleled = args.parallel
+        preflight = args.preflight
 
         if args.eksctl:
             quit("updating using EKSCTL is still under testing will be launched soon")
@@ -221,12 +224,10 @@ def main(args):
             quit()
         else:
             print("Pre flight check for the cluster " + cluster_name + " succeded")
-        if args.preflight:
+        if preflight:
             quit()
 
-        # ''' upgrade Logic'''
-
-        st = time.time()
+        # upgrade Logic
         logs_pusher(regionName=regionName, cluster_name=cluster_name, msg="The Cluster Upgrade Process has Started")
         if (
             is_cluster_exists(Clustname=cluster_name, regionName=regionName) == "ACTIVE"
@@ -241,17 +242,15 @@ def main(args):
         else:
             raise Exception("Cluster is Not Active")
 
-        # '''
         # Checking Cluster is Active or Not Befor Making an Update
-        # '''
         start = time.time()
         if is_cluster_exists(Clustname=cluster_name, regionName=regionName) == "ACTIVE":
-            # if eksctl flag is enabled.s
+            # if eksctl flag is enabled.
             if args.eksctl != False:
                 print("updating using EKSCTL")
                 eksctl_execute(args)
                 print("Pre flight check for the upgraded cluster")
-                if not (pre_flight_checks(cluster_name, regionName, topic=args.topic)):
+                if not (pre_flight_checks(preflight, cluster_name, regionName, pass_vpc=pass_vpc)):
                     print("Pre flight check for cluster " + cluster_name + " failed after it upgraded")
                 else:
                     print("After update check for cluster completed successfully")
@@ -309,7 +308,7 @@ def main(args):
             regionName=regionName, cluster_name=cluster_name, msg="The Addons Upgrade Started At " + str(start_time)
         )
 
-        update_addons(cluster_name=cluster_name, version=to_update, vpcPass=pass_vpc, regionName=regionName)
+        update_addons(cluster_name=cluster_name, version=to_update, vpc_pass=pass_vpc, region_name=regionName)
         end = time.time()
         hours, rem = divmod(end - start, 3600)
         minutes, seconds = divmod(rem, 60)
@@ -349,7 +348,7 @@ def main(args):
             print("Paused the Cluster AutoScaler")
         else:
             print("No Cluster AutoScaler is Found")
-        if parlleld:
+        if paralleled:
             for x in range(20):
                 worker = StatsWorker(queue, x)
                 worker.setDaemon(True)
@@ -357,20 +356,19 @@ def main(args):
 
         if len(finding_manged_nodes) != 0:
             for ng_name in finding_manged_nodes:
-
                 start = time.time()
                 print("Updating the Node Group = {ng} To version = {versi}".format(ng=ng_name, versi=to_update))
-                if parlleld:
+                if paralleled:
                     queue.put([cluster_name, ng_name, to_update, regionName, max_retry, forced, "managed"])
                 else:
                     Update_nodeGroup(cluster_name, ng_name, to_update, regionName)
         if len(asg_list_self_managed) != 0:
             for asg_iter in asg_list_self_managed:
-                if parlleld:
+                if paralleled:
                     queue.put([cluster_name, asg_iter, to_update, regionName, max_retry, forced, "selfmanaged"])
                 else:
                     actual_update(cluster_name, asg_iter, to_update, regionName, max_retry, forced)
-        if parlleld:
+        if paralleled:
             queue.join()
         if isPresent:
             clus_auto_enable_disable(
