@@ -12,6 +12,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: MIT No Attribution License (MIT-0)",
 ]
 include = [
@@ -21,6 +22,9 @@ include = [
 
 [tool.poetry.scripts]
 eksupgrade = "eksupgrade.cli:entry"
+
+[tool.bandit]
+exclude_dirs = ["tests"]
 
 # Styling and linting Configurations
 [tool.isort]
@@ -41,6 +45,24 @@ max-line-length = 120
 max-line-length = 120
 max-module-lines = 1000
 
+[tool.poe.tasks]
+isort = "isort --profile=black ."
+black = "black ."
+check-black = {cmd = "black . --check --diff", help = "Check code for black styling"}
+check-isort = {cmd = "isort --check --profile=black .", help = "Check code for import styling"}
+check-docstrings = "pydocstyle -e ."
+check-pylint = "pylint eksupgrade"
+check = ["check-isort", "check-black", "check-docstrings"]
+lint = ["check-docstrings", "check-pylint"]
+fix = ["isort", "black"]
+test = "pytest --cov=eksupgrade --cov-report=xml --cov-report=term"
+safety = "safety check"
+bandit = "bandit -r eksupgrade"
+security = ["safety", "bandit"]
+# requires poethepoet outside of poetry.
+install = "poetry install"
+build = "poetry build"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 boto3 = "^1.26.60"
@@ -51,6 +73,7 @@ kubernetes = ">=21.0.0 <25.0.0"
 pytest = "^7.2.1"
 pytest-cov = "^4.0.0"
 coverage = "^7.1.0"
+moto = {extras = ["ec2", "eks", "ssm", "sts"], version = "^4.1.1"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -59,11 +82,16 @@ black = "^22.12.0"
 pydocstyle = "^6.3.0"
 pylint = "^2.15.10"
 mypy = "^0.991"
+debugpy = "^1.6.6"
 
 
 [tool.poetry.group.security.dependencies]
 safety = "^2.3.5"
-bandit = "^1.7.4"
+bandit = {extras = ["toml"], version = "^1.7.4"}
+
+
+[tool.poetry.group.types.dependencies]
+types-pyyaml = "^6.0.12.4"
 
 [build-system]
 requires = ["poetry-core"]
