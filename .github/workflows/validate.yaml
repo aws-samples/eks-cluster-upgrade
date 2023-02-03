@@ -1,4 +1,4 @@
-name: 'Linting and Styling'
+name: 'Validation'
 
 on:
   push:
