@@ -47,7 +47,7 @@ max-module-lines = 1000
 
 [tool.poe.tasks]
 isort = "isort --profile=black ."
-black = "black --config pyproject.toml ."
+black = "black ."
 check-black = {cmd = "black . --check --diff", help = "Check code for black styling"}
 check-isort = {cmd = "isort --check --profile=black .", help = "Check code for import styling"}
 check-docstrings = "pydocstyle -e ."
@@ -92,7 +92,6 @@ bandit = {extras = ["toml"], version = "^1.7.4"}
 
 [tool.poetry.group.types.dependencies]
 types-pyyaml = "^6.0.12.4"
-
 
 [build-system]
 requires = ["poetry-core"]
