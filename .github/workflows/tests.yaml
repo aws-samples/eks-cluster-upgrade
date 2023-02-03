@@ -71,4 +71,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          poetry run pytest
+          poetry poe test
+
+      - name: Codecov
+        uses: codecov/codecov-action@v2
