@@ -52,8 +52,8 @@ runs:
       uses: actions/cache@v3
       with:
         path: ${{github.workspace}}/.venv
-        key: poetry-deps-lint-${{ hashFiles('**/poetry.lock') }}
-        restore-keys: poetry-deps-lint-
+        key: poetry-deps-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: poetry-deps-
 
     - name: Install Deps
       if: steps.cache-deps.cache-hit != 'true'
