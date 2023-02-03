@@ -67,4 +67,4 @@ jobs:
 
       - name: Run Security Checks
         run: |
-          poetry poe security
+          poetry poe safety
