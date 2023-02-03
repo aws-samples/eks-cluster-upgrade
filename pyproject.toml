@@ -52,7 +52,7 @@ check-black = {cmd = "black . --check --diff", help = "Check code for black styl
 check-isort = {cmd = "isort --check --profile=black .", help = "Check code for import styling"}
 check-docstrings = "pydocstyle -e ."
 check-pylint = "pylint eksupgrade"
-check = ["check-isort", "check-black", "check-docstrings"]
+check = ["check-isort", "check-black"]
 lint = ["check-docstrings", "check-pylint"]
 fix = ["isort", "black"]
 test = "pytest --cov=eksupgrade --cov-report=xml --cov-report=term"
