@@ -10,9 +10,9 @@ from .k8s_client import find_node
 logger = logging.getLogger(__name__)
 
 
-def image_type(node_type, Presentversion, inst, regionName):
+def image_type(node_type, inst, region):
     """Return the image location."""
-    ec2_client = boto3.client("ec2", region_name=regionName)
+    ec2_client = boto3.client("ec2", region_name=region)
     if node_type == "Amazon Linux 2":
         filters = [
             {"Name": "owner-id", "Values": ["602401143452"]},
@@ -52,9 +52,9 @@ def image_type(node_type, Presentversion, inst, regionName):
     return inst in instances_list
 
 
-def get_ami_name(cluster_name, asg_name, PresentVersion, regionName):
-    asg_client = boto3.client("autoscaling", region_name=regionName)
-    ec2_client = boto3.client("ec2", region_name=regionName)
+def get_ami_name(cluster_name: str, asg_name: str, region: str):
+    asg_client = boto3.client("autoscaling", region_name=region)
+    ec2_client = boto3.client("ec2", region_name=region)
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     instance_ids = [instance["InstanceId"] for instance in response["AutoScalingGroups"][0]["Instances"]]
     if not instance_ids:
@@ -67,19 +67,17 @@ def get_ami_name(cluster_name, asg_name, PresentVersion, regionName):
         for instance in reservation["Instances"]:
             instance_id = instance["ImageId"]
             # getting the instance type as amz2 or windows or ubuntu
-            node_type = find_node(cluster_name, instance["InstanceId"], "os_type", regionName)
+            node_type = find_node(cluster_name, instance["InstanceId"], "os_type", region)
             ans.append(
                 [
                     node_type,
-                    image_type(
-                        node_type=node_type, Presentversion=PresentVersion, inst=instance_id, regionName=regionName
-                    ),
+                    image_type(node_type=node_type, inst=instance_id, region=region),
                 ]
             )
     # custom logic to check wether the os_type is same if same returning and if not returing the least repeated name
     result = False
     if ans:
-        result = all(elem[0] == ans[0][0] for i, elem in enumerate(ans))
+        result = all(elem[0] == ans[0][0] for _, elem in enumerate(ans))
         if result:
             return ans[0]
         dd = {}

@@ -180,7 +180,6 @@ eks-upgrade/
 │   ├── S3Files/
 │   ├── __init__.py
 │   ├── boto_aws.py
-│   ├── eks_get_image_type.py
 │   ├── eksctlfinal.py
 │   ├── ekslogs.py
 │   ├── k8s_client.py
