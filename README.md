@@ -3,13 +3,13 @@
 <p align="center">
 <a href="">
     <img src="https://forthebadge.com/images/badges/open-source.svg" alt="Opensource eks" style="vertical-align:top; margin:4px">
-  </a>  
+  </a>
   <a href="">
     <img src="https://ForTheBadge.com/images/badges/built-with-love.svg" alt="Eks one click" style="vertical-align:top; margin:4px">
-  </a>  
+  </a>
 <a href="">
     <img src="https://ForTheBadge.com/images/badges/made-with-python.svg" alt="kubernetes python" style="vertical-align:top; margin:4px">
-  </a>  
+  </a>
 </p>
 
 Amazon Elastic Kubernetes Service (Amazon EKS) is a managed service that you can use to run Kubernetes on AWS without needing to install, operate, and maintain your own Kubernetes control plane or nodes. Kubernetes is an open-source system for automating the deployment, scaling, and management of containerized applications.
@@ -89,7 +89,7 @@ Once the user executes the python script, a pre-flight check is initiated where 
 
 ```zsh
 
-$ aws eks update-kubeconfig --name eks-cluster-name --region aws-region 
+$ aws eks update-kubeconfig --name eks-cluster-name --region aws-region
 $ kubectl edit configmap aws-auth -n kube-system
 
 # Add the IAM user to mapUsers. For example:
@@ -149,12 +149,10 @@ For more information related to steps on how to create and attach IAM policy, yo
                 "autoscaling:TerminateInstanceInAutoScalingGroup",
                 "iam:GetRole",
                 "eks:ListNodegroups",
-                "logs:DescribeLogGroups",
                 "ec2:DescribeLaunchTemplates",
                 "autoscaling:SetDesiredCapacity",
                 "ses:SendRawEmail",
                 "ses:GetIdentityVerificationAttributes",
-                "logs:CreateLogGroup",
                 "logs:PutLogEvents",
                 "config:DescribeConfigurationRecorderStatus",
                 "ec2:DescribeSecurityGroups",
@@ -204,11 +202,11 @@ pip install eksupgrade
 
 ```zsh
 
-To Get Help Use [-h] 
+To Get Help Use [-h]
 
 Usage :
 
-    eks-one-click-upgrade % eksupgrade -h 
+    eks-one-click-upgrade % eksupgrade -h
 
     usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
                      [--eksctl] [--preflight] [--email EMAIL]

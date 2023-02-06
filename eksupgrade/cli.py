@@ -1,9 +1,17 @@
+"""Handle CLI specific logic and module definitions."""
+from __future__ import annotations
+
 import argparse
+import logging
+from typing import List
 
 from eksupgrade.starter import main
 
+logger = logging.getLogger(__name__)
 
-def entry():
+
+def entry() -> None:
+    """Handle the CLI entrypoint argument parsing."""
     example_text = """
 example:
 
@@ -12,19 +20,23 @@ example:
 
 Force pod eviction when you have PDB (Pod Disruption Budget):
 
-    -> eksupgrade cluster_name new_version aws_region --force 
+    -> eksupgrade cluster_name new_version aws_region --force
 
 Skip VPC CNI upgrade:
 
-    -> eksupgrade cluster_name new_version aws_region --pass_vpc 
+    -> eksupgrade cluster_name new_version aws_region --pass_vpc
 
 Skip upgrade workflow:
 
-    -> eksupgrade cluster_name new_version aws_region --preflight 
+    -> eksupgrade cluster_name new_version aws_region --preflight
+
+Set log level to console (default to INFO):
+
+    -> eksupgrade cluster_name new_version aws_region --log-level debug
 
 """
 
-    regions_list = [
+    regions_list: List[str] = [
         "af-south-1",
         "eu-north-1",
         "ap-south-1",
@@ -68,7 +80,11 @@ Skip upgrade workflow:
     parser.add_argument(
         "--parallel", action="store_true", default=False, help="Parllel Upgrade all node groups together "
     )
+    parser.add_argument(
+        "--log-level", default="INFO", help="The log level to be displayed in the console. Default to: INFO"
+    )
     args = parser.parse_args()
+    logging.basicConfig(level=args.log_level.upper())
     main(args)
 
 
