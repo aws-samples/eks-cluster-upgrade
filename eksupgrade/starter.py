@@ -105,7 +105,7 @@ def actual_update(cluster_name, asg_iter, to_update, region, max_retry, forced):
             if abs(before_count - len(outdated_instances)) != len(outdated_instances):
                 add_node(asg_iter, region)
                 time.sleep(45)
-                latest_instance = get_latest_instance(asg_name=asg_iter, add_time=add_time, regionName=region)
+                latest_instance = get_latest_instance(asg_name=asg_iter, add_time=add_time, region=region)
                 logger.info("The Instance Created = %s and waiting for it to be ready", latest_instance)
                 time.sleep(30)
                 wait_for_ready(latest_instance, region)
@@ -130,9 +130,9 @@ def actual_update(cluster_name, asg_iter, to_update, region, max_retry, forced):
 
             unschedule_old_nodes(cluster_name=cluster_name, node_name=old_pod_id, region=region)
             logger.info("The node: %s has been unscheduled! Worker Node Draining...", old_pod_id)
-            drain_nodes(cluster_name=cluster_name, Nodename=old_pod_id, forced=forced, regionName=region)
+            drain_nodes(cluster_name=cluster_name, node_name=old_pod_id, forced=forced, region=region)
             logger.info("The worker node has been drained! Deleting worker Node Started = %s", old_pod_id)
-            delete_node(cluster_name=cluster_name, NodeName=old_pod_id, regionName=region)
+            delete_node(cluster_name=cluster_name, node_name=old_pod_id, region=region)
             logger.info("The worker node: %s has been deleted. Terminating Worker Node: %s...", old_pod_id, instance)
             worker_terminate(instance, region=region)
             terminated_ids.append(instance)

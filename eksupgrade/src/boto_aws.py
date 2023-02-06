@@ -33,15 +33,15 @@ def is_cluster_exists(Clustname, regionName) -> str:
         raise e
 
 
-def get_latest_instance(asg_name, add_time, regionName) -> Optional[str]:
+def get_latest_instance(asg_name: str, add_time: datetime.datetime, region: str) -> str:
     """Retrieve the most recently launched/launching instance.
 
     Note that this is not necessarily the same one that was launched by `add_node()`,
     but it's the best I could think of.
 
     """
-    asg_client = boto3.client("autoscaling", region_name=regionName)
-    ec2_client = boto3.client("ec2", region_name=regionName)
+    asg_client = boto3.client("autoscaling", region_name=region)
+    ec2_client = boto3.client("ec2", region_name=region)
     instances = []
 
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
@@ -60,14 +60,14 @@ def get_latest_instance(asg_name, add_time, regionName) -> Optional[str]:
         if instance["State"]["Name"] in ["pending", "running"] and instance["LaunchTime"] > add_time
     ]
 
-    latest_instance = ""
+    latest_instance: Dict[str, Any] = {}
     try:
         time.sleep(10)
         latest_instance = sorted(instances_valid, key=lambda instance: instance["LaunchTime"])[-1]
+        return latest_instance["InstanceId"]
     except Exception as e:
         logger.error("Exception encountered while sorting instances. Error: %s", e)
         raise e
-    return latest_instance.get("InstanceId")
 
 
 def wait_for_ready(instanceid: str, regionName: str) -> bool:

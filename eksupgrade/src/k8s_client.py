@@ -130,33 +130,33 @@ def watcher(cluster_name: str, name: str, region: str) -> bool:
         raise e
 
 
-def drain_nodes(cluster_name, Nodename, forced, regionName) -> Optional[str]:
+def drain_nodes(cluster_name, node_name, forced, region) -> Optional[str]:
     """Pod eviction using the eviction API."""
-    loading_config(cluster_name, regionName)
-    v1 = client.CoreV1Api()
-    api_response = v1.list_pod_for_all_namespaces(watch=False, field_selector=f"spec.nodeName={Nodename}")
+    loading_config(cluster_name, region)
+    core_v1_api = client.CoreV1Api()
+    api_response = core_v1_api.list_pod_for_all_namespaces(watch=False, field_selector=f"spec.nodeName={node_name}")
     retry = 0
 
     if not api_response.items:
-        return f"Empty Nothing to Drain {Nodename}"
+        return f"Empty Nothing to Drain {node_name}"
 
     for i in api_response.items:
-        if i.spec.node_name == Nodename:
+        if i.spec.node_name == node_name:
             try:
                 if forced:
-                    v1.delete_namespaced_pod(
+                    core_v1_api.delete_namespaced_pod(
                         i.metadata.name, i.metadata.namespace, grace_period_seconds=0, body=client.V1DeleteOptions()
                     )
                 else:
                     eviction_body = client.models.v1beta1_eviction.V1beta1Eviction(
                         metadata=client.V1ObjectMeta(name=i.metadata.name, namespace=i.metadata.namespace)
                     )
-                    v1.create_namespaced_pod_eviction(
+                    core_v1_api.create_namespaced_pod_eviction(
                         name=i.metadata.name, namespace=i.metadata.namespace, body=eviction_body
                     )
                     # retry to if pod is not deleted with eviction api
-                    if not watcher(cluster_name, i.metadata.name, regionName) and retry < 2:
-                        drain_nodes(cluster_name, i.metadata.name, forced=forced, regionName=regionName)
+                    if not watcher(cluster_name, i.metadata.name, region) and retry < 2:
+                        drain_nodes(cluster_name, i.metadata.name, forced=forced, region=region)
                         retry += 1
                     if retry == 2:
                         logger.error(
@@ -168,23 +168,27 @@ def drain_nodes(cluster_name, Nodename, forced, regionName) -> Optional[str]:
                     return None
             except Exception as e:
                 logger.error(
-                    "Exception encountered while attempting to drain nodes! Node: %s Cluster: %s",
-                    Nodename,
+                    "Exception encountered while attempting to drain nodes! Node: %s Cluster: %s - Error: %s",
+                    node_name,
                     cluster_name,
+                    e,
                 )
                 raise Exception("Unable to Delete the Node")
 
 
-def delete_node(cluster_name, NodeName, regionName) -> None:
+def delete_node(cluster_name: str, node_name: str, region: str) -> None:
     """Delete the node from compute list this doesnt terminate the instance."""
     try:
-        loading_config(cluster_name, regionName)
-        v1 = client.CoreV1Api()
-        v1.delete_node(NodeName)
+        loading_config(cluster_name, region)
+        core_v1_api = client.CoreV1Api()
+        core_v1_api.delete_node(node_name)
         return
     except ApiException as e:
         logger.error(
-            "Exception encountered attempting to delete a node! Cluster: %s - Node: %s", cluster_name, NodeName
+            "Exception encountered attempting to delete a node! Cluster: %s - Node: %s - Error: %s",
+            cluster_name,
+            node_name,
+            e,
         )
         raise e
 
