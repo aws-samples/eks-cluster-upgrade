@@ -653,7 +653,7 @@ def pod_disruption_budget(errors, cluster_name, region, report, customer_report,
     try:
         v1 = client.PolicyV1beta1Api()
         ret = v1.list_pod_disruption_budget_for_all_namespaces()
-        if len(ret.items) == 0:
+        if not ret.items:
             customer_report["pod disruption budget"] = "No Pod Disruption Budget exists in cluster"
             logger.info("No Pod Disruption Budget exists in cluster")
         else:
