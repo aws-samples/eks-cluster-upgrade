@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import queue
 import re
 import threading
 import time
-from typing import Optional
+from typing import Any, Dict, List, Optional, Union
 
 import boto3
 import yaml
@@ -20,7 +21,7 @@ from botocore.signers import RequestSigner
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 
-from .ekslogs import logs_pusher
+logger = logging.getLogger(__name__)
 
 queue = queue.Queue()
 
@@ -33,15 +34,18 @@ class StatsWorker(threading.Thread):
 
     def run(self):
         while self.queue.not_empty:
-            cluster_name, nameSpace, new_pod_name, _, regionName = self.queue.get()
+            cluster_name, namespace, new_pod_name, _, region = self.queue.get()
             status = addon_status(
                 cluster_name=cluster_name,
                 new_pod_name=new_pod_name,
-                region_name=regionName,
-                namespace=nameSpace,
+                region=region,
+                namespace=namespace,
             )
             # signals to queue job is done
             if not status:
+                logger.error(
+                    "Pod not started! Cluster: %s - Namespace: %s - New Pod: %s", cluster_name, namespace, new_pod_name
+                )
                 raise Exception("Pod Not Started", new_pod_name)
 
             self.queue.task_done()
@@ -54,7 +58,6 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
 
     sts_client = session.client("sts", region_name=region)
     service_id = sts_client.meta.service_model.service_id
-
     signer = RequestSigner(service_id, region, "sts", "v4", session.get_credentials(), session.events)
 
     params = {
@@ -88,16 +91,21 @@ def loading_config(cluster_name, regionName) -> str:
     return "Initialiazed"
 
 
-def unschedule_old_nodes(ClusterName, Nodename, regionName) -> None:
+def unschedule_old_nodes(cluster_name: str, node_name: str, region: str) -> None:
     """Unschedule the nodes to avoid new nodes being launched."""
-    loading_config(ClusterName, regionName)
+    loading_config(cluster_name, region)
     try:
         core_v1_api = client.CoreV1Api()
         # unscheduling the nodes
         body = {"spec": {"unschedulable": True}}
-        core_v1_api.patch_node(Nodename, body)
+        core_v1_api.patch_node(node_name, body)
     except Exception as e:
-        raise Exception(str(e))
+        logger.error(
+            "Exception encountered while attempting to unschedule old nodes - cluster: %s - node: %s",
+            cluster_name,
+            node_name,
+        )
+        raise e
     return
 
 
@@ -109,70 +117,87 @@ def watcher(cluster_name: str, name: str, region: str) -> bool:
 
     try:
         for event in _watcher.stream(core_v1_api.list_pod_for_all_namespaces, timeout_seconds=30):
-            print(event["type"], event["object"].metadata.name)
+            logger.info("%s %s", event["type"], event["object"].metadata.name)
 
             if event["type"] == "DELETED" and event["object"].metadata.name == name:
                 _watcher.stop()
                 return True
         return False
     except Exception as e:
-        print(e)
+        logger.error(
+            "Exception encountered in watcher method against cluster: %s name: %s Error: %s", cluster_name, name, e
+        )
         raise e
 
 
-def drain_nodes(cluster_name, Nodename, forced, regionName) -> Optional[str]:
-    """pod eviction using eviction api"""
-    loading_config(cluster_name, regionName)
-    v1 = client.CoreV1Api()
-    api_response = v1.list_pod_for_all_namespaces(watch=False, field_selector=f"spec.nodeName={Nodename}")
+def drain_nodes(cluster_name, node_name, forced, region) -> Optional[str]:
+    """Pod eviction using the eviction API."""
+    loading_config(cluster_name, region)
+    core_v1_api = client.CoreV1Api()
+    api_response = core_v1_api.list_pod_for_all_namespaces(watch=False, field_selector=f"spec.nodeName={node_name}")
     retry = 0
 
     if not api_response.items:
-        return f"Empty Nothing to Drain {Nodename}"
+        return f"Empty Nothing to Drain {node_name}"
 
     for i in api_response.items:
-        if i.spec.node_name == Nodename:
+        if i.spec.node_name == node_name:
             try:
                 if forced:
-                    v1.delete_namespaced_pod(
+                    core_v1_api.delete_namespaced_pod(
                         i.metadata.name, i.metadata.namespace, grace_period_seconds=0, body=client.V1DeleteOptions()
                     )
                 else:
                     eviction_body = client.models.v1beta1_eviction.V1beta1Eviction(
                         metadata=client.V1ObjectMeta(name=i.metadata.name, namespace=i.metadata.namespace)
                     )
-                    v1.create_namespaced_pod_eviction(
+                    core_v1_api.create_namespaced_pod_eviction(
                         name=i.metadata.name, namespace=i.metadata.namespace, body=eviction_body
                     )
                     # retry to if pod is not deleted with eviction api
-                    if not watcher(cluster_name, i.metadata.name, regionName) and retry < 2:
-                        drain_nodes(cluster_name, i.metadata.name, forced=forced, regionName=regionName)
+                    if not watcher(cluster_name, i.metadata.name, region) and retry < 2:
+                        drain_nodes(cluster_name, i.metadata.name, forced=forced, region=region)
                         retry += 1
                     if retry == 2:
+                        logger.error(
+                            "Exception encountered - unable to delete the node: %s in cluster: %s",
+                            i.metadata.name,
+                            cluster_name,
+                        )
                         raise Exception("Error Not able to delete the Node" + i.metadata.name)
                     return None
             except Exception as e:
-                print(e)
+                logger.error(
+                    "Exception encountered while attempting to drain nodes! Node: %s Cluster: %s - Error: %s",
+                    node_name,
+                    cluster_name,
+                    e,
+                )
                 raise Exception("Unable to Delete the Node")
 
 
-def delete_node(cluster_name, NodeName, regionName) -> None:
+def delete_node(cluster_name: str, node_name: str, region: str) -> None:
     """Delete the node from compute list this doesnt terminate the instance."""
     try:
-        loading_config(cluster_name, regionName)
-        v1 = client.CoreV1Api()
-        v1.delete_node(NodeName)
+        loading_config(cluster_name, region)
+        core_v1_api = client.CoreV1Api()
+        core_v1_api.delete_node(node_name)
         return
     except ApiException as e:
-        print(e)
+        logger.error(
+            "Exception encountered attempting to delete a node! Cluster: %s - Node: %s - Error: %s",
+            cluster_name,
+            node_name,
+            e,
+        )
         raise e
 
 
-def find_node(cluster_name, instance_id, operation, region_name):
+def find_node(cluster_name: str, instance_id: str, operation: str, region: str) -> str:
     """Find the node by instance id."""
-    loading_config(cluster_name, region_name)
+    loading_config(cluster_name, region)
     core_v1_api = client.CoreV1Api()
-    nodes = []
+    nodes: List[List[str]] = []
     response = core_v1_api.list_node()
 
     if not response.items:
@@ -198,13 +223,15 @@ def find_node(cluster_name, instance_id, operation, region_name):
     if operation == "os_type":
         for i in nodes:
             if i[0] == instance_id:
-                print(i[0])
+                logger.info(i[0])
                 return i[-1]
         return "NAN"
+    return "NAN"
 
 
-def addon_status(cluster_name, new_pod_name, region_name, namespace):
-    loading_config(cluster_name, region_name)
+def addon_status(cluster_name: str, new_pod_name: str, region: str, namespace: str) -> bool:
+    """Get the status of an addon pod."""
+    loading_config(cluster_name, region)
     core_v1_api = client.CoreV1Api()
     tts = 100
     now = time.time()
@@ -213,49 +240,67 @@ def addon_status(cluster_name, new_pod_name, region_name, namespace):
         response = core_v1_api.read_namespaced_pod_status(name=new_pod_name, namespace=namespace)
         if response.status.container_statuses[0].ready and response.status.container_statuses[0].started:
             return True
-
     return False
 
 
-def sort_pods(cluster_name, regionName, original_name, pod_name, old_pods_name, nameSpace, c=90):
-    if not c:
-        raise Exception("Pod has No assosicated New Launch")
+def sort_pods(
+    cluster_name: str,
+    region: str,
+    original_name: str,
+    pod_name: str,
+    old_pods_name: List[str],
+    namespace: str,
+    count: int = 90,
+) -> str:
+    """Sort the pod results."""
+    if not count:
+        logger.error(
+            "Pod has no associated new pod! Cluster: %s - Namespace: %s - Pod Name: %s",
+            cluster_name,
+            namespace,
+            pod_name,
+        )
+        raise Exception("Pod has No associated New Launch")
 
     pods_nodes = []
-    loading_config(cluster_name, regionName)
+    loading_config(cluster_name, region)
     core_v1_api = client.CoreV1Api()
     try:
         if pod_name == "cluster-autoscaler":
-            pod_list = core_v1_api.list_namespaced_pod(namespace=nameSpace, label_selector=f"app={pod_name}")
+            pod_list = core_v1_api.list_namespaced_pod(namespace=namespace, label_selector=f"app={pod_name}")
         else:
-            pod_list = core_v1_api.list_namespaced_pod(namespace=nameSpace, label_selector=f"k8s-app={pod_name}")
-
+            pod_list = core_v1_api.list_namespaced_pod(namespace=namespace, label_selector=f"k8s-app={pod_name}")
     except Exception as e:
-        logs_pusher(regionName, cluster_name, e)
+        logger.error(
+            "Exception encountered while attempting to get the pod list and sort_pods - cluster: %s, error: %s",
+            cluster_name,
+            e,
+        )
         return "Not Found"
 
-    print(f"Total Pods With {pod_name} = {len(pod_list.items)}")
+    logger.info("Total Pods With %s = %s", pod_name, len(pod_list.items))
     for i in pod_list.items:
         pods_nodes.append([i.metadata.name, i.metadata.creation_timestamp])
 
     if pods_nodes:
         new_pod_name = sorted(pods_nodes, key=lambda x: x[1])[-1][0]
     else:
-        c -= 1
-        sort_pods(cluster_name, regionName, original_name, pod_name, old_pods_name, nameSpace, c)
+        count -= 1
+        sort_pods(cluster_name, region, original_name, pod_name, old_pods_name, namespace, count)
         # TODO: Remove this.  Adding to resolve possible use before assignment below.
         new_pod_name = ""
 
     if original_name != new_pod_name and new_pod_name in old_pods_name:
-        c -= 1
-        sort_pods(cluster_name, regionName, original_name, pod_name, old_pods_name, nameSpace, c)
+        count -= 1
+        sort_pods(cluster_name, region, original_name, pod_name, old_pods_name, namespace, count)
     return new_pod_name
 
 
-def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
+def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: str) -> None:
+    """Update the addons."""
     loading_config(cluster_name, region_name)
-    for x in range(20):
-        worker = StatsWorker(queue, x)
+    for _item in range(20):
+        worker = StatsWorker(queue, _item)
         worker.setDaemon(True)
         worker.start()
 
@@ -263,33 +308,39 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
     apps_v1_api = client.AppsV1Api()
     rep = core_v1_api.list_namespaced_pod("kube-system")
 
-    with open("eksupgrade/src/S3Files/version_dict.json", "r", encoding="utf-8") as add_on_dict:
-        add_on_dict = json.load(add_on_dict)
+    with open("eksupgrade/src/S3Files/version_dict.json", "r", encoding="utf-8") as version_dict_file:
+        add_on_dict: Dict[str, Any] = json.load(version_dict_file)
 
-    old_pods_name = []
+    old_pods_name: List[str] = []
 
     for pod in rep.items:
         old_pods_name.append(pod.metadata.name)
 
-    print("The Addons Found = ", *old_pods_name)
+    logger.info("The Addons Found = %s", old_pods_name)
 
     flag_vpc, flag_core, flag_proxy, flag_scaler = True, True, True, True
 
     try:
         for pod in rep.items:
-            images = [c.image for c in pod.spec.containers]
+            images: List[str] = [c.image for c in pod.spec.containers]
             image = "".join(images)
             coredns_new = add_on_dict[version].get("coredns")
             kubeproxy_new = add_on_dict[version].get("kube-proxy")
             autoscaler_new = add_on_dict[version].get("cluster-autoscaler")
             cni_new = add_on_dict[version].get("vpc-cni")
             _current_image = image.rsplit(":", maxsplit=1)[-1]
-            vv = int("".join(_current_image.replace("v", "").replace("-", ".").split(".")[:3]))
+            _cluster_ver = int("".join(_current_image.replace("v", "").replace("-", ".").split(".")[:3]))
             new_version_int = int(version.replace(".", ""))
             image_base_uri: str = image.split(":")[0]
+            coredns_new_version: str = f"v{coredns_new}-eksbuild.1"
 
-            if "coredns" in pod.metadata.name and _current_image != "v" + coredns_new + "-eksbuild.1":
-                print(f"{pod.metadata.name} Current Version = {_current_image} Updating to = v{coredns_new}-eksbuild.1")
+            if "coredns" in pod.metadata.name and _current_image != coredns_new_version:
+                logger.info(
+                    "%s Current Version = %s Updating to = v%s-eksbuild.1",
+                    pod.metadata.name,
+                    _current_image,
+                    coredns_new,
+                )
                 body = {
                     "spec": {
                         "template": {
@@ -297,7 +348,7 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
                                 "containers": [
                                     {
                                         "name": "coredns",
-                                        "image": image_base_uri + ":v" + coredns_new + "-eksbuild.1",
+                                        "image": f"{image_base_uri}:{coredns_new_version}",
                                     }
                                 ]
                             }
@@ -308,7 +359,7 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
                     apps_v1_api.patch_namespaced_deployment(
                         name="coredns", namespace="kube-system", body=body, pretty=True
                     )
-                    if vv <= 170:
+                    if _cluster_ver <= 170:
                         with open("eksupgrade/src/S3Files/core-dns.yaml", "r", encoding="utf-8") as coredns_yaml:
                             body = yaml.safe_load(coredns_yaml)
                         core_v1_api.patch_namespaced_config_map(name="coredns", namespace="kube-system", body=body)
@@ -317,13 +368,13 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
 
                 new_pod_name = sort_pods(
                     cluster_name=cluster_name,
-                    regionName=region_name,
+                    region=region_name,
                     original_name=pod.metadata.name,
                     old_pods_name=old_pods_name,
                     pod_name="kube-dns",
-                    nameSpace="kube-system",
+                    namespace="kube-system",
                 )
-                print(f"Old CoreDNS Pod: {pod.metadata.name} \t New CoreDNS Pod: {new_pod_name}")
+                logger.info("Old CoreDNS Pod: %s - New CoreDNS Pod: %s", pod.metadata.name, new_pod_name)
                 queue.put([cluster_name, "kube-system", new_pod_name, "coredns", region_name])
             elif "kube-proxy" in pod.metadata.name:
                 if new_version_int <= 118:
@@ -336,8 +387,11 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
                 _new_kubeproxy_version: str = f"v{kubeproxy_new}-{final_ender}"
 
                 if _current_image != _new_kubeproxy_version:
-                    print(
-                        f"{pod.metadata.name} Current version: {_current_image} Updating to: {_new_kubeproxy_version}"
+                    logger.info(
+                        "%s Current version: %s Updating to: %s",
+                        pod.metadata.name,
+                        _current_image,
+                        _new_kubeproxy_version,
                     )
                     body = {
                         "spec": {
@@ -361,29 +415,25 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
                     time.sleep(20)
                     new_pod_name = sort_pods(
                         cluster_name=cluster_name,
-                        regionName=region_name,
+                        region=region_name,
                         original_name=pod.metadata.name,
                         old_pods_name=old_pods_name,
                         pod_name="kube-proxy",
-                        nameSpace="kube-system",
+                        namespace="kube-system",
                     )
 
-                    print(f"Old kube-proxy pod: {pod.metadata.name} \t New kube-proxy pod: {new_pod_name}")
+                    logger.info("Old kube-proxy pod: %s - New kube-proxy pod: %s", pod.metadata.name, new_pod_name)
                     queue.put([cluster_name, "kube-system", new_pod_name, "kube-proxy", region_name])
-            elif "cluster-autoscaler" in pod.metadata.name and _current_image != "v" + autoscaler_new:
-                print(
-                    pod.metadata.name,
-                    "Current Version = ",
-                    _current_image,
-                    "Updating To = ",
-                    "v" + autoscaler_new,
+            elif "cluster-autoscaler" in pod.metadata.name and _current_image != f"v{autoscaler_new}":
+                logger.info(
+                    "%s Current Version = %s Updating To = v%s", pod.metadata.name, _current_image, autoscaler_new
                 )
                 body = {
                     "spec": {
                         "template": {
                             "spec": {
                                 "containers": [
-                                    {"name": "cluster-autoscaler", "image": image_base_uri + ":v" + autoscaler_new}
+                                    {"name": "cluster-autoscaler", "image": f"{image_base_uri}:v{autoscaler_new}"}
                                 ]
                             }
                         }
@@ -397,27 +447,23 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
                 time.sleep(20)
                 new_pod_name = sort_pods(
                     cluster_name=cluster_name,
-                    regionName=region_name,
+                    region=region_name,
                     original_name=pod.metadata.name,
                     old_pods_name=old_pods_name,
                     pod_name="cluster-autoscaler",
-                    nameSpace="kube-system",
+                    namespace="kube-system",
                 )
-                print(
-                    "old Cluster AutoScaler Pod {oldp} \t new AutoScaler pod {newp}".format(
-                        oldp=pod.metadata.name, newp=new_pod_name
-                    )
-                )
+                logger.info("old Cluster AutoScaler Pod %s - new AutoScaler pod %s", pod.metadata.name, new_pod_name)
                 queue.put([cluster_name, "kube-system", new_pod_name, "cluster-autoscaler", region_name])
-            elif "aws-node" in pod.metadata.name and _current_image != "v" + cni_new and not vpc_pass:
-                print(pod.metadata.name, "Current Version = ", _current_image, "Updating To = ", "v" + cni_new)
+            elif "aws-node" in pod.metadata.name and _current_image != f"v{cni_new}" and not vpc_pass:
+                logger.info("%s Current Version = %s Updating To = v%s", pod.metadata.name, _current_image, cni_new)
                 if flag_vpc:
                     with open("eksupgrade/src/S3Files/vpc-cni.yaml", "r", encoding="utf-8") as vpc_cni_yaml:
                         body = yaml.safe_load(vpc_cni_yaml)
 
-                    body["spec"]["template"]["spec"]["containers"][0]["image"] = image_base_uri + ":v" + cni_new
+                    body["spec"]["template"]["spec"]["containers"][0]["image"] = f"{image_base_uri}:v{cni_new}"
                     old = body["spec"]["template"]["spec"]["initContainers"][0]["image"]
-                    body["spec"]["template"]["spec"]["initContainers"][0]["image"] = old.split(":")[0] + ":v" + cni_new
+                    body["spec"]["template"]["spec"]["initContainers"][0]["image"] = f"{old.split(':')[0]}:v{cni_new}"
                     apps_v1_api.patch_namespaced_daemon_set(
                         namespace="kube-system", name="aws-node", body=body, pretty=True
                     )
@@ -425,50 +471,55 @@ def update_addons(cluster_name, version, vpc_pass, region_name) -> None:
                 time.sleep(20)
                 new_pod_name = sort_pods(
                     cluster_name=cluster_name,
-                    regionName=region_name,
+                    region=region_name,
                     original_name=pod.metadata.name,
                     old_pods_name=old_pods_name,
                     pod_name="aws-node",
-                    nameSpace="kube-system",
+                    namespace="kube-system",
                 )
-                print(f"Old VPC CNI pod: {pod.metadata.name} \t New VPC CNI pod: {new_pod_name}")
+                logger.info("Old VPC CNI pod: %s - New VPC CNI pod: %s", pod.metadata.name, new_pod_name)
                 queue.put([cluster_name, "kube-system", new_pod_name, "aws-node", region_name])
         queue.join()
     except Exception as e:
-        print(e)
-        raise Exception(e)
+        logger.error("Exception encountered while attempting to update the addons - Error: %s", e)
+        raise e
 
 
-def delete_pd_policy(pd_name):
+def delete_pd_policy(pd_name: str) -> None:
+    """Attempt to delete a Pod Disruption policy."""
     api_cli = client.PolicyV1beta1Api()
     try:
         api_response = api_cli.delete_namespaced_pod_disruption_budget(name=pd_name, namespace="default")
-        print(api_response)
+        logger.debug(api_response)
     except ApiException as e:
-        print("Exception when calling PolicyV1beta1Api->delete_namespaced_pod_disruption_budget: %s\n" % e)
+        logger.error("Exception when calling PolicyV1beta1Api->delete_namespaced_pod_disruption_budget: %s", e)
 
 
-def is_cluster_auto_scaler_present(ClusterName, regionName):
-    loading_config(cluster_name=ClusterName, regionName=regionName)
-    v1 = client.AppsV1Api()
-    res = v1.list_deployment_for_all_namespaces()
+def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[int, str]]:
+    """Determine whether or not cluster autoscaler is present."""
+    loading_config(cluster_name=cluster_name, regionName=region)
+    apps_v1_api = client.AppsV1Api()
+    res = apps_v1_api.list_deployment_for_all_namespaces()
     for res_i in res.items:
         if res_i.metadata.name == "cluster-autoscaler":
             return [True, res_i.spec.replicas]
     return [False, "NAN"]
 
 
-def clus_auto_enable_disable(ClusterName, type, mx_val, regionName):
-    loading_config(cluster_name=ClusterName, regionName=regionName)
+def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, region: str) -> None:
+    """Enable or disable deployment in cluster."""
+    loading_config(cluster_name=cluster_name, regionName=region)
     api = client.AppsV1Api()
-    if type == "pause":
+    if operation == "pause":
         body = {"spec": {"replicas": 0}}
-    elif type == "start":
+    elif operation == "start":
         body = {"spec": {"replicas": mx_val}}
     else:
-        return "error"
+        logger.error("Operation must be either pause or start to auto_enable_disable!")
+        raise NotImplementedError("Operation must be either pause or start!")
+
     try:
         api.patch_namespaced_deployment(name="cluster-autoscaler", namespace="kube-system", body=body)
     except Exception as e:
-        print(e)
-        raise Exception(e)
+        logger.error("Exception encountered while running auto enable disable - Error: %s", e)
+        raise e

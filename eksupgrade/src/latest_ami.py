@@ -1,37 +1,39 @@
+"""Define the AMI specific logic."""
+from __future__ import annotations
+
+import logging
+
 import boto3
 
+logger = logging.getLogger(__name__)
 
-def get_latestami(clustVersion, instancetype, image_to_search, region_Name):
-    ssm = boto3.client("ssm", region_name=region_Name)
-    client = boto3.client("ec2", region_name=region_Name)
-    if "Amazon Linux 2" in instancetype:
-        names = [
-            "/aws/service/eks/optimized-ami/{version}/amazon-linux-2/recommended/image_id".format(version=clustVersion),
-        ]
-    elif "Windows" in instancetype:
-        names = [
-            "/aws/service/ami-windows-latest/{image_to_search}-{version}/image_id".format(
-                image_to_search=image_to_search, version=clustVersion
-            )
-        ]
-    elif "bottlerocket" in instancetype.lower():
-        names = ["/aws/service/bottlerocket/aws-k8s-{version}/x86_64/latest/image_id".format(version=clustVersion)]
-    elif "Ubuntu" in instancetype:
+
+def get_latest_ami(cluster_version: str, instance_type: str, image_to_search: str, region: str) -> str:
+    """Get the latest AMI."""
+    ssm = boto3.client("ssm", region_name=region)
+    client = boto3.client("ec2", region_name=region)
+
+    if "Amazon Linux 2" in instance_type:
+        names = [f"/aws/service/eks/optimized-ami/{cluster_version: str}/amazon-linux-2/recommended/image_id"]
+    elif "Windows" in instance_type:
+        names = [f"/aws/service/ami-windows-latest/{image_to_search}-{cluster_version: str}/image_id"]
+    elif "bottlerocket" in instance_type.lower():
+        names = [f"/aws/service/bottlerocket/aws-k8s-{cluster_version: str}/x86_64/latest/image_id"]
+    elif "Ubuntu" in instance_type:
         filters = [
             {"Name": "owner-id", "Values": ["099720109477"]},
-            {"Name": "name", "Values": ["ubuntu-eks/k8s_{version}*".format(version=clustVersion)]},
+            {"Name": "name", "Values": [f"ubuntu-eks/k8s_{cluster_version: str}*"]},
             {"Name": "is-public", "Values": ["true"]},
         ]
         response = client.describe_images(Filters=filters)
-        x = sorted(response["Images"], key=lambda x: x["CreationDate"], reverse=True)
-        if len(x) > 0:
-            return x[0].get("ImageId")
-        else:
-            raise Exception("Couldn't Find Latest Image Retry The Script")
+        sorted_images = sorted(response["Images"], key=lambda x: x["CreationDate"], reverse=True)
+        if sorted_images:
+            return sorted_images[0].get("ImageId")
+        raise Exception("Couldn't Find Latest Image Retry The Script")
     else:
         return "NAN"
     response = ssm.get_parameters(Names=names)
-    if len(response.get("Parameters")) > 0:
+    if response.get("Parameters"):
         return response.get("Parameters")[0]["Value"]
-    else:
-        raise Exception("Couldn't Find Latest Image Retry The Script")
+    logger.error("Couldn't find the latest image - please retry the script!")
+    raise Exception("Couldn't Find Latest Image Retry The Script")

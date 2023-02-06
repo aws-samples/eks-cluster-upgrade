@@ -1,15 +1,20 @@
+"""Define the starter module."""
+from __future__ import annotations
+
 import datetime
+import logging
 import queue
+import sys
 import threading
 import time
 
 from .src.boto_aws import (
+    add_autoscaling,
     add_node,
-    addAutoScaling,
-    get_Asgs,
+    get_asgs,
     get_latest_instance,
     get_num_of_instances,
-    get_outdated_Asg,
+    get_outdated_asg,
     is_cluster_exists,
     outdated_lt,
     status_of_cluster,
@@ -19,9 +24,8 @@ from .src.boto_aws import (
 )
 from .src.eks_get_image_type import get_ami_name
 from .src.eksctlfinal import eksctl_execute
-from .src.ekslogs import logs_pusher
 from .src.k8s_client import (
-    clus_auto_enable_disable,
+    cluster_auto_enable_disable,
     delete_node,
     drain_nodes,
     find_node,
@@ -29,378 +33,270 @@ from .src.k8s_client import (
     unschedule_old_nodes,
     update_addons,
 )
-from .src.latest_ami import get_latestami
+from .src.latest_ami import get_latest_ami
 from .src.preflight_module import pre_flight_checks
-from .src.self_managed import Update_nodeGroup, filter_node_groups, get_asg_node_groups, get_node_groups
+from .src.self_managed import filter_node_groups, get_asg_node_groups, get_node_groups, update_nodegroup
+
+logger = logging.getLogger(__name__)
 
 queue = queue.Queue()
 
 
 class StatsWorker(threading.Thread):
-    def __init__(self, queue, id):
+    """Define the Stats worker for process and queue handling."""
+
+    def __init__(self, queue, id) -> None:
+        """Initialize the stats worker."""
         threading.Thread.__init__(self)
         self.queue = queue
         self.id = id
 
-    def run(self):
+    def run(self) -> None:
+        """Run the thread routine."""
         while self.queue.not_empty:
-            cluster_name, ng_name, to_update, regionName, max_retry, forced, typse = self.queue.get()
+            cluster_name, ng_name, to_update, region, max_retry, forced, typse = self.queue.get()
             if typse == "managed":
-                start = time.time()
-                logs_pusher(
-                    regionName=regionName,
-                    cluster_name=cluster_name,
-                    msg="Updating Node Group {ng} To version {versi}".format(ng=ng_name, versi=to_update),
-                )
-                Update_nodeGroup(cluster_name, ng_name, to_update, regionName)
-                end = time.time()
-                hours, rem = divmod(end - start, 3600)
-                minutes, seconds = divmod(rem, 60)
-                print(
-                    "Updated Node Group {ng} To version {versi} ".format(ng=ng_name, versi=to_update),
-                    "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds),
-                )
-                logs_pusher(
-                    regionName=regionName,
-                    cluster_name=cluster_name,
-                    msg="Updated Node Group {ng} To version {versi}".format(ng=ng_name, versi=to_update),
-                )
-
+                logger.info("Updating node group: %s to version: %s", ng_name, to_update)
+                update_nodegroup(cluster_name, ng_name, to_update, region)
+                logger.info("Updated node group: %s to version: %s", ng_name, to_update)
                 self.queue.task_done()
             elif typse == "selfmanaged":
-                start = time.time()
-                logs_pusher(
-                    regionName=regionName,
-                    cluster_name=cluster_name,
-                    msg="Updating Node Group {ng} To version {versi}".format(ng=ng_name, versi=to_update),
-                )
+                logger.info("Updating node group: %s to version: %s", ng_name, to_update)
                 actual_update(
                     cluster_name=cluster_name,
                     asg_iter=ng_name,
                     to_update=to_update,
-                    regionName=regionName,
+                    region=region,
                     max_retry=max_retry,
                     forced=forced,
                 )
-                end = time.time()
-                hours, rem = divmod(end - start, 3600)
-                minutes, seconds = divmod(rem, 60)
-                print(
-                    "Updated Node Group {ng} To version {versi} ".format(ng=ng_name, versi=to_update),
-                    "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds),
-                )
-                logs_pusher(
-                    regionName=regionName,
-                    cluster_name=cluster_name,
-                    msg="Updated Node Group {ng} To version {versi}".format(ng=ng_name, versi=to_update),
-                )
-
+                logger.info("Updated node group: %s to version: %s", ng_name, to_update)
                 self.queue.task_done()
 
 
-def actual_update(cluster_name, asg_iter, to_update, regionName, max_retry, forced):
-    presentversion = "1.1 eks update"
-    instance_type, image_to_search = get_ami_name(cluster_name, asg_iter, presentversion, regionName)
-    print("The Image Type Detected = ", instance_type)
+def actual_update(cluster_name, asg_iter, to_update, region, max_retry, forced):
+    """Perform the update."""
+    instance_type, image_to_search = get_ami_name(cluster_name, asg_iter, region)
+    logger.info("The Image Type Detected = %s", instance_type)
+
     if instance_type == "NAN":
         return False
     if isinstance(image_to_search, str) and "Windows_Server" in image_to_search:
         image_to_search = image_to_search[:46]
-    latest_ami = get_latestami(to_update, instance_type, image_to_search, regionName)
-    print("The Latest AMI Recommended = {image}".format(image=latest_ami))
-    logs_pusher(
-        regionName=regionName, cluster_name=cluster_name, msg="The Latest AMI Image = {image}".format(image=latest_ami)
-    )
-    if get_outdated_Asg(asg_iter, latest_ami, regionName):
-        addAutoScaling(asg_iter, latest_ami, regionName)
-        print("New Launch Configuration Added to = {ast} With EKS AMI = {ami}".format(ast=asg_iter, ami=latest_ami))
+    latest_ami = get_latest_ami(to_update, instance_type, image_to_search, region)
+    logger.info("The Latest AMI Recommended = %s", latest_ami)
 
-    outdated_instances = outdated_lt(asg_iter, regionName)
-    if len(outdated_instances) == 0:
+    if get_outdated_asg(asg_iter, latest_ami, region):
+        add_autoscaling(asg_iter, latest_ami, region)
+        logger.info("New Launch Configuration Added to = %s With EKS AMI = %s", asg_iter, latest_ami)
+
+    outdated_instances = outdated_lt(asg_iter, region)
+    if not outdated_instances:
         return True
+
     try:
         terminated_ids = []
-        logs_pusher(
-            regionName=regionName,
-            cluster_name=cluster_name,
-            msg="The Outdate Instance Found Are = {instan}".format(instan=outdated_instances),
-        )
+        logger.info("The Outdate Instance Found Are = %s", outdated_instances)
         for instance in outdated_instances:
-            befor_count = get_num_of_instances(asg_iter, terminated_ids, regionName)
-            logs_pusher(
-                regionName=regionName,
-                cluster_name=cluster_name,
-                msg="Total Instance count = {count}".format(count=befor_count),
-            )
+            before_count = get_num_of_instances(asg_iter, terminated_ids, region)
+            logger.info("Total Instance count = %s", before_count)
             add_time = datetime.datetime.now(datetime.timezone.utc)
-            if abs(befor_count - len(outdated_instances)) != len(outdated_instances):
-                add_node(asg_iter, regionName)
-                time.sleep(45)
-                latest_instance = get_latest_instance(asg_name=asg_iter, add_time=add_time, regionName=regionName)
-                logs_pusher(
-                    regionName=regionName,
-                    cluster_name=cluster_name,
-                    msg="The Instance Created = {instan}".format(instan=latest_instance),
-                )
-                print(latest_instance, "is Created and waiting for it to be ready")
-                time.sleep(30)
-                wait_for_ready(latest_instance, regionName)
 
-            old_pod_id = find_node(
-                cluster_name=cluster_name, instance_id=instance, operation="find", region_name=regionName
-            )
+            if abs(before_count - len(outdated_instances)) != len(outdated_instances):
+                add_node(asg_iter, region)
+                time.sleep(45)
+                latest_instance = get_latest_instance(asg_name=asg_iter, add_time=add_time, region=region)
+                logger.info("The Instance Created = %s and waiting for it to be ready", latest_instance)
+                time.sleep(30)
+                wait_for_ready(latest_instance, region)
+
+            old_pod_id = find_node(cluster_name=cluster_name, instance_id=instance, operation="find", region=region)
             if old_pod_id != "NAN":
                 retry = 0
                 flag = 0
                 while retry <= max_retry:
                     if (
-                        not find_node(
-                            cluster_name=cluster_name, instance_id=instance, operation="find", region_name=regionName
-                        )
+                        not find_node(cluster_name=cluster_name, instance_id=instance, operation="find", region=region)
                         == "NAN"
                     ):
                         flag = 1
                         retry += 1
                         time.sleep(10)
                 if flag == 0:
-                    worker_terminate(instance, regionName=regionName)
+                    worker_terminate(instance, region=region)
                     raise Exception("404 instance is not corresponded to particular node group")
 
-            print("Unshceduling The worker Node ={wn} ".format(wn=old_pod_id))
+            logger.info("Unscheduling the worker node = %s", old_pod_id)
 
-            unschedule_old_nodes(ClusterName=cluster_name, Nodename=old_pod_id, regionName=regionName)
-            logs_pusher(
-                regionName=regionName,
-                cluster_name=cluster_name,
-                msg="The Node is Unscheduled = {instan}".format(instan=old_pod_id),
-            )
-            print("Worker Node Drained = {instan}".format(instan=old_pod_id))
-            drain_nodes(cluster_name=cluster_name, Nodename=old_pod_id, forced=forced, regionName=regionName)
-            logs_pusher(
-                regionName=regionName,
-                cluster_name=cluster_name,
-                msg="The Worker Node is Drained = {instan}".format(instan=old_pod_id),
-            )
-
-            print("Deleting worker Node Started ={op} ".format(op=old_pod_id))
-            delete_node(cluster_name=cluster_name, NodeName=old_pod_id, regionName=regionName)
-            logs_pusher(
-                regionName=regionName,
-                cluster_name=cluster_name,
-                msg="The Worker Node is Deleted = {instan}".format(instan=old_pod_id),
-            )
-            print("Terminating Worker Node {wn}".format(wn=instance))
-            worker_terminate(instance, regionName=regionName)
+            unschedule_old_nodes(cluster_name=cluster_name, node_name=old_pod_id, region=region)
+            logger.info("The node: %s has been unscheduled! Worker Node Draining...", old_pod_id)
+            drain_nodes(cluster_name=cluster_name, node_name=old_pod_id, forced=forced, region=region)
+            logger.info("The worker node has been drained! Deleting worker Node Started = %s", old_pod_id)
+            delete_node(cluster_name=cluster_name, node_name=old_pod_id, region=region)
+            logger.info("The worker node: %s has been deleted. Terminating Worker Node: %s...", old_pod_id, instance)
+            worker_terminate(instance, region=region)
             terminated_ids.append(instance)
-            logs_pusher(
-                regionName=regionName,
-                cluster_name=cluster_name,
-                msg="The Worker Node instance is Terminated = {instan}".format(instan=instance),
-            )
+            logger.info("The worker node instance: %s has been terminated!", instance)
         return True
     except Exception as e:
-        raise (e)
+        logger.error("Error encountered during actual update! Exception: %s", e)
+        raise e
 
 
-def main(args):
+def main(args) -> None:
+    """Handle the main workflow for eks update."""
     try:
         cluster_name = args.name
         to_update = args.version
         pass_vpc = args.pass_vpc
         max_retry = args.max_retry
-        regionName = args.region
-        presentversion = "NAN"
-        isPresent = False
+        region = args.region
+        present_version = "NAN"
+        is_present = False
         forced = args.force
         paralleled = args.parallel
         preflight = args.preflight
 
         if args.eksctl:
-            quit("updating using EKSCTL is still under testing will be launched soon")
+            sys.exit("updating using EKSCTL is still under testing will be launched soon")
 
-        """ Preflight Logic """
-        if not (pre_flight_checks(True, cluster_name, regionName, args.pass_vpc, args.version, args.email, args.force)):
-            print("Pre flight check for cluster " + cluster_name + " failed")
-            quit()
+        # Preflight Logic
+        if not (pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.email, args.force)):
+            logger.error("Pre-flight check for cluster %s failed!", cluster_name)
+            sys.exit()
         else:
-            print("Pre flight check for the cluster " + cluster_name + " succeded")
+            logger.info("Pre-flight check for the cluster %s succeded!", cluster_name)
         if preflight:
-            quit()
+            sys.exit()
 
         # upgrade Logic
-        logs_pusher(regionName=regionName, cluster_name=cluster_name, msg="The Cluster Upgrade Process has Started")
+        logger.info("The cluster upgrade process has started")
         if (
-            is_cluster_exists(Clustname=cluster_name, regionName=regionName) == "ACTIVE"
-            or is_cluster_exists(Clustname=cluster_name, regionName=regionName) == "UPDATING"
+            is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE"
+            or is_cluster_exists(cluster_name=cluster_name, region=region) == "UPDATING"
         ):
-            presentversion = status_of_cluster(cluster_name, regionName)[1]
-            logs_pusher(
-                regionName=regionName,
-                cluster_name=cluster_name,
-                msg="The Current Version of the Cluster is Detected = {version} ".format(version=presentversion),
-            )
+            present_version = status_of_cluster(cluster_name, region)[1]
+            logger.info("The current version of the cluster was detected as: %s", present_version)
         else:
-            raise Exception("Cluster is Not Active")
+            raise Exception("The cluster is not active")
 
         # Checking Cluster is Active or Not Befor Making an Update
         start = time.time()
-        if is_cluster_exists(Clustname=cluster_name, regionName=regionName) == "ACTIVE":
+        if is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE":
             # if eksctl flag is enabled.
-            if args.eksctl != False:
-                print("updating using EKSCTL")
+            if args.eksctl:
+                logger.info("updating using EKSCTL")
                 eksctl_execute(args)
-                print("Pre flight check for the upgraded cluster")
-                if not (pre_flight_checks(preflight, cluster_name, regionName, pass_vpc=pass_vpc)):
-                    print("Pre flight check for cluster " + cluster_name + " failed after it upgraded")
+                logger.info("Pre flight check for the upgraded cluster")
+                if not (pre_flight_checks(preflight, cluster_name, region, pass_vpc=pass_vpc)):
+                    logger.info("Pre flight check for cluster %s failed after it upgraded", cluster_name)
                 else:
-                    print("After update check for cluster completed successfully")
-                quit()
-            update_cluster(Clustname=cluster_name, Version=to_update, regionName=regionName)
+                    logger.info("After update check for cluster completed successfully")
+                sys.exit()
+            update_cluster(cluster_name=cluster_name, version=to_update, region=region)
         time.sleep(5)
 
-        """ Making Sure the Cluster is Updated"""
+        # Making Sure the Cluster is Updated
         if (
-            status_of_cluster(cluster_name, regionName)[1] != to_update
-            or status_of_cluster(cluster_name, regionName)[0] != "ACTIVE"
+            status_of_cluster(cluster_name, region)[1] != to_update
+            or status_of_cluster(cluster_name, region)[0] != "ACTIVE"
         ):
-            update_cluster(cluster_name, to_update, regionName)
+            update_cluster(cluster_name, to_update, region)
 
-        """ finding the managed autoscaling groups """
+        # finding the managed autoscaling groups
 
         end = time.time()
         hours, rem = divmod(end - start, 3600)
         minutes, seconds = divmod(rem, 60)
-        print(
-            "The Time Taken For the Cluster to Upgrade ",
-            "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds),
-        )
-        logs_pusher(
-            regionName=regionName,
-            cluster_name=cluster_name,
-            msg="Time Taken For the Cluster to Upgrade "
-            + " {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds),
-        )
+        logger.info("The Time Taken For the Cluster to Upgrade %s:%s:%s", int(hours), int(minutes), seconds)
+        finding_manged = get_asg_node_groups(cluster_name, region)
+        logger.info("The Manged Node Groups Found are %s", ",".join(finding_manged))
+        asg_list = get_asgs(cluster_name, region)
+        logger.info("The Asg's Found Are %s", ",".join(asg_list))
 
-        finding_manged = get_asg_node_groups(cluster_name, regionName)
-
-        logs_pusher(
-            regionName=regionName,
-            cluster_name=cluster_name,
-            msg="The Manged Node Groups Found are " + ",".join(finding_manged),
-        )
-
-        asg_list = get_Asgs(cluster_name, regionName)
-
-        logs_pusher(regionName=regionName, cluster_name=cluster_name, msg="The Asg's Found Are " + ",".join(asg_list))
-
-        """ removing selfmanged from manged so that we dont update them again"""
-
+        # removing selfmanged from manged so that we dont update them again
         asg_list_self_managed = list(set(asg_list) - set(finding_manged))
 
-        """ addons update """
+        # addons update
+        finding_manged_nodes_names = get_node_groups(cluster_name=cluster_name, region=region)
 
-        finding_manged_nodes_names = get_node_groups(Clustername=cluster_name, regionName=regionName)
-
-        print(" The add-ons Update has been initiated.... ")
+        logger.info("The add-ons Update has been initiated...")
         start_time = time.time()
         start = time.time()
-        logs_pusher(
-            regionName=regionName, cluster_name=cluster_name, msg="The Addons Upgrade Started At " + str(start_time)
-        )
-
-        update_addons(cluster_name=cluster_name, version=to_update, vpc_pass=pass_vpc, region_name=regionName)
+        logger.info("The Addons Upgrade Started At %s", str(start_time))
+        update_addons(cluster_name=cluster_name, version=to_update, vpc_pass=pass_vpc, region_name=region)
         end = time.time()
         hours, rem = divmod(end - start, 3600)
         minutes, seconds = divmod(rem, 60)
 
-        print("The Taken For the Addons Upgrade ", "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
-        logs_pusher(
-            regionName=regionName,
-            cluster_name=cluster_name,
-            msg="The Taken For the Addons Upgrade "
-            + "{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds),
-        )
-
-        """ finding managed node groups with filter"""
+        logger.info("The Taken For the Addons Upgrade %s:%s:%s", int(hours), int(minutes), seconds)
+        # finding managed node groups with filter
         finding_manged_nodes = filter_node_groups(
             cluster_name=cluster_name,
             node_list=finding_manged_nodes_names,
             latest_version=to_update,
-            regionName=regionName,
+            region=region,
         )
-        if len(finding_manged) > 0:
-            print("The OutDated Managed Node Groups = ", finding_manged)
+        if finding_manged:
+            logger.info("The OutDated Managed Node Groups = %s", finding_manged)
         else:
-            print("No OutDated Managed Node Groups Found ")
+            logger.info("No OutDated Managed Node Groups Found")
 
         replicas_value = 0
 
-        """ checking auto scaler present and the value associated from it """
+        # checking auto scaler present and the value associated from it
 
-        isPresent, replicas_value = is_cluster_auto_scaler_present(ClusterName=cluster_name, regionName=regionName)
+        is_present, replicas_value = is_cluster_auto_scaler_present(ClusterName=cluster_name, regionName=region)
 
-        if isPresent:
-            clus_auto_enable_disable(
-                ClusterName=cluster_name, type="pause", mx_val=replicas_value, regionName=regionName
+        if is_present:
+            cluster_auto_enable_disable(
+                cluster_name=cluster_name, operation="pause", mx_val=replicas_value, region=region
             )
-            logs_pusher(regionName=regionName, cluster_name=cluster_name, msg="Paused Cluster AutoScaler")
-
-            print("Paused the Cluster AutoScaler")
+            logger.info("Paused the Cluster AutoScaler")
         else:
-            print("No Cluster AutoScaler is Found")
+            logger.info("No Cluster AutoScaler is Found")
         if paralleled:
             for x in range(20):
                 worker = StatsWorker(queue, x)
                 worker.setDaemon(True)
                 worker.start()
 
-        if len(finding_manged_nodes) != 0:
-            for ng_name in finding_manged_nodes:
-                start = time.time()
-                print("Updating the Node Group = {ng} To version = {versi}".format(ng=ng_name, versi=to_update))
-                if paralleled:
-                    queue.put([cluster_name, ng_name, to_update, regionName, max_retry, forced, "managed"])
-                else:
-                    Update_nodeGroup(cluster_name, ng_name, to_update, regionName)
-        if len(asg_list_self_managed) != 0:
-            for asg_iter in asg_list_self_managed:
-                if paralleled:
-                    queue.put([cluster_name, asg_iter, to_update, regionName, max_retry, forced, "selfmanaged"])
-                else:
-                    actual_update(cluster_name, asg_iter, to_update, regionName, max_retry, forced)
+        for ng_name in finding_manged_nodes:
+            start = time.time()
+            logger.info("Updating the Node Group = %s To version = %s", ng_name, to_update)
+            if paralleled:
+                queue.put([cluster_name, ng_name, to_update, region, max_retry, forced, "managed"])
+            else:
+                update_nodegroup(cluster_name, ng_name, to_update, region)
+
+        for asg_iter in asg_list_self_managed:
+            if paralleled:
+                queue.put([cluster_name, asg_iter, to_update, region, max_retry, forced, "selfmanaged"])
+            else:
+                actual_update(cluster_name, asg_iter, to_update, region, max_retry, forced)
+
         if paralleled:
             queue.join()
-        if isPresent:
-            clus_auto_enable_disable(
-                ClusterName=cluster_name, type="start", mx_val=replicas_value, regionName=regionName
-            )
-            print("Cluster Autoscaler is Enabled Again")
-            logs_pusher(regionName=regionName, cluster_name=cluster_name, msg="Cluster Autoscaler is Enabled Again")
-        print(" EKS Cluster {Clustname} UPDATED TO {ver}".format(Clustname=cluster_name, ver=to_update))
-        logs_pusher(
-            regionName=regionName,
-            cluster_name=cluster_name,
-            msg=" EKS Cluster {Clustname} UPDATED TO {ver}".format(Clustname=cluster_name, ver=to_update),
-        )
-        print("Post flight check for the upgraded cluster")
-        if not (pre_flight_checks(False, cluster_name, regionName, args.pass_vpc, email=args.email)):
-            print("Post flight check for cluster " + cluster_name + " failed after it upgraded")
-        else:
-            print("After update check for cluster completed successfully")
 
+        if is_present:
+            cluster_auto_enable_disable(
+                cluster_name=cluster_name, operation="start", mx_val=replicas_value, region=region
+            )
+            logger.info("Cluster Autoscaler is Enabled Again")
+        logger.info("EKS Cluster %s UPDATED TO %s", cluster_name, to_update)
+        logger.info("Post flight check for the upgraded cluster")
+
+        if not (pre_flight_checks(False, cluster_name, region, args.pass_vpc, email=args.email)):
+            logger.info("Post flight check for cluster %s failed after it upgraded", cluster_name)
+        else:
+            logger.info("After update check for cluster completed successfully")
     except Exception as e:
-        if isPresent:
+        if is_present:
             try:
-                clus_auto_enable_disable(
-                    ClusterName=cluster_name, type="start", mx_val=replicas_value, regionName=regionName
+                cluster_auto_enable_disable(
+                    cluster_name=cluster_name, operation="start", mx_val=replicas_value, region=region
                 )
-                print("Cluster Autoscaler is Enabled Again")
-                logs_pusher(regionName=regionName, cluster_name=cluster_name, msg="Cluster Autoscaler is Enabled Again")
+                logger.info("Cluster Autoscaler is Enabled Again")
             except Exception as e:
-                print("Enter AutoScaler Manullay")
-        logs_pusher(
-            regionName=regionName,
-            cluster_name=cluster_name,
-            msg="The Cluster Upgrade Failed Due To = {err}".format(err=e),
-        )
-        print(e)
+                logger.error("Autoenable failed and must be done manually! Error: %s", e)
+        logger.error("Exception encountered in main method - Error: %s", e)
