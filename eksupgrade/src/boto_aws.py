@@ -219,10 +219,10 @@ def add_node(asg_name: str, region: str) -> None:
         raise e
 
 
-def get_num_of_instances(asg_name, exclude_ids, regionName) -> int:
+def get_num_of_instances(asg_name: str, exclude_ids: List[str], region: str) -> int:
     """Count the number of instances."""
-    asg_client = boto3.client("autoscaling", region_name=regionName)
-    ec2_client = boto3.client("ec2", region_name=regionName)
+    asg_client = boto3.client("autoscaling", region_name=region)
+    ec2_client = boto3.client("ec2", region_name=region)
     instances = []
 
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
@@ -264,16 +264,11 @@ def get_asgs(cluster_name: str, region: str) -> List[str]:
     return matching_names
 
 
-def old_lt_secanarios(inst, asg_lt_name, asg_lt_version) -> bool:
+def old_lt_secanarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
     """Get the old launch template based on launch template name and version 1!=2."""
     lt_name = inst["LaunchTemplate"]["LaunchTemplateName"]
     lt_version = int(inst["LaunchTemplate"]["Version"])
-    if lt_name != asg_lt_name:
-        return True
-    elif lt_version != int(asg_lt_version):
-        return True
-    else:
-        return False
+    return (lt_name != asg_lt_name) or (lt_version != int(asg_lt_version))
 
 
 def get_old_lt(asg_name: str, region: str) -> List[str]:

@@ -110,17 +110,13 @@ def actual_update(cluster_name, asg_iter, to_update, region, max_retry, forced):
                 time.sleep(30)
                 wait_for_ready(latest_instance, region)
 
-            old_pod_id = find_node(
-                cluster_name=cluster_name, instance_id=instance, operation="find", region_name=region
-            )
+            old_pod_id = find_node(cluster_name=cluster_name, instance_id=instance, operation="find", region=region)
             if old_pod_id != "NAN":
                 retry = 0
                 flag = 0
                 while retry <= max_retry:
                     if (
-                        not find_node(
-                            cluster_name=cluster_name, instance_id=instance, operation="find", region_name=region
-                        )
+                        not find_node(cluster_name=cluster_name, instance_id=instance, operation="find", region=region)
                         == "NAN"
                     ):
                         flag = 1
