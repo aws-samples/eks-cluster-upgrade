@@ -12,21 +12,21 @@ import boto3
 logger = logging.getLogger(__name__)
 
 
-def status_of_cluster(Clustname, regionName) -> List[str]:
+def status_of_cluster(cluster_name: str, region: str) -> List[str]:
     """Check the satus of the cluster and version of the cluster."""
-    eks_client = boto3.client("eks", region_name=regionName)
+    eks_client = boto3.client("eks", region_name=region)
     try:
-        response = eks_client.describe_cluster(name=Clustname)
+        response = eks_client.describe_cluster(name=cluster_name)
         return [response["cluster"]["status"], response["cluster"]["version"]]
     except Exception as e:
         logger.error("Exception encountered while attempting to get cluster status - Error: %s", e)
         raise e
 
 
-def is_cluster_exists(Clustname, regionName) -> str:
+def is_cluster_exists(cluster_name: str, region: str) -> str:
     """Check wether the cluster exists or not."""
     try:
-        response = status_of_cluster(Clustname, regionName)
+        response = status_of_cluster(cluster_name, region)
         return response[0]
     except Exception as e:
         logger.error("Exception encountered while checking if cluster exists. Error: %s", e)
@@ -142,37 +142,37 @@ def enable_disable_autoscaler(asg_name: str, action: str, regionName: str) -> st
         return "Something went Wrong auto scaling operation failed"
 
 
-def update_cluster(Clustname: str, Version: str, regionName: str) -> bool:
+def update_cluster(cluster_name: str, version: str, region: str) -> bool:
     """Check for cluster update."""
-    eks_client = boto3.client("eks", region_name=regionName)
+    eks_client = boto3.client("eks", region_name=region)
     logger.info(
         "The Cluster status = %s and version = %s",
-        status_of_cluster(Clustname, regionName)[0],
-        status_of_cluster(Clustname, regionName)[1],
+        status_of_cluster(cluster_name, region)[0],
+        status_of_cluster(cluster_name, region)[1],
     )
     try:
-        if status_of_cluster(Clustname, regionName)[1] == Version:
-            logger.info("The %s cluster is already Updated to %s", Clustname, Version)
+        if status_of_cluster(cluster_name, region)[1] == version:
+            logger.info("The %s cluster is already Updated to %s", cluster_name, version)
             return True
 
         while True:
             if (
-                is_cluster_exists(Clustname, regionName) == "ACTIVE"
-                and status_of_cluster(Clustname, regionName)[1] != Version
+                is_cluster_exists(cluster_name, region) == "ACTIVE"
+                and status_of_cluster(cluster_name, region)[1] != version
             ):
-                eks_client.update_cluster_version(name=Clustname, version=Version)
-                logger.info("The %s Cluster upgrade is initiated and getting updated to %s", Clustname, Version)
+                eks_client.update_cluster_version(name=cluster_name, version=version)
+                logger.info("The %s Cluster upgrade is initiated and getting updated to %s", cluster_name, version)
                 time.sleep(60)
 
-            if is_cluster_exists(Clustname, regionName) == "UPDATING":
-                logger.info("The Cluster %s is Still Updating to %s...", Clustname, Version)
+            if is_cluster_exists(cluster_name, region) == "UPDATING":
+                logger.info("The Cluster %s is Still Updating to %s...", cluster_name, version)
                 time.sleep(20)
 
             if (
-                is_cluster_exists(Clustname, regionName) == "ACTIVE"
-                and status_of_cluster(Clustname, regionName)[1] == Version
+                is_cluster_exists(cluster_name, region) == "ACTIVE"
+                and status_of_cluster(cluster_name, region)[1] == version
             ):
-                logger.info("The %s Updated to %s", Clustname, Version)
+                logger.info("The %s Updated to %s", cluster_name, version)
                 break
         return True
     except Exception as e:

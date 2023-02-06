@@ -12,10 +12,10 @@ from .latest_ami import get_latest_ami
 logger = logging.getLogger(__name__)
 
 
-def status_of_cluster(Clustname: str, regionName: str) -> List[str]:
+def status_of_cluster(cluster_name: str, region: str) -> List[str]:
     """Get the self Managed Cluster Status."""
-    client = boto3.client("eks", region_name=regionName)
-    response = client.describe_cluster(name=Clustname)
+    client = boto3.client("eks", region_name=region)
+    response = client.describe_cluster(name=cluster_name)
     status = response["cluster"]["status"]
     version = response["cluster"]["version"]
     logger.info("The Cluster Status = %s and Version = %s", status, version)

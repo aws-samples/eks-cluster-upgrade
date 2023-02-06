@@ -13,7 +13,7 @@ import queue
 import re
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import boto3
 import yaml
@@ -193,11 +193,11 @@ def delete_node(cluster_name: str, node_name: str, region: str) -> None:
         raise e
 
 
-def find_node(cluster_name: str, instance_id: str, operation: str, region: str) -> Optional[str]:
+def find_node(cluster_name: str, instance_id: str, operation: str, region: str) -> str:
     """Find the node by instance id."""
     loading_config(cluster_name, region)
     core_v1_api = client.CoreV1Api()
-    nodes = []
+    nodes: List[List[str]] = []
     response = core_v1_api.list_node()
 
     if not response.items:
@@ -250,10 +250,10 @@ def sort_pods(
     pod_name: str,
     old_pods_name: List[str],
     namespace: str,
-    c: Optional[int] = 90,
+    count: int = 90,
 ) -> str:
     """Sort the pod results."""
-    if not c:
+    if not count:
         logger.error(
             "Pod has no associated new pod! Cluster: %s - Namespace: %s - Pod Name: %s",
             cluster_name,
@@ -285,14 +285,14 @@ def sort_pods(
     if pods_nodes:
         new_pod_name = sorted(pods_nodes, key=lambda x: x[1])[-1][0]
     else:
-        c -= 1
-        sort_pods(cluster_name, region, original_name, pod_name, old_pods_name, namespace, c)
+        count -= 1
+        sort_pods(cluster_name, region, original_name, pod_name, old_pods_name, namespace, count)
         # TODO: Remove this.  Adding to resolve possible use before assignment below.
         new_pod_name = ""
 
     if original_name != new_pod_name and new_pod_name in old_pods_name:
-        c -= 1
-        sort_pods(cluster_name, region, original_name, pod_name, old_pods_name, namespace, c)
+        count -= 1
+        sort_pods(cluster_name, region, original_name, pod_name, old_pods_name, namespace, count)
     return new_pod_name
 
 
@@ -495,17 +495,18 @@ def delete_pd_policy(pd_name: str) -> None:
         logger.error("Exception when calling PolicyV1beta1Api->delete_namespaced_pod_disruption_budget: %s", e)
 
 
-def is_cluster_auto_scaler_present(ClusterName, regionName):
-    loading_config(cluster_name=ClusterName, regionName=regionName)
-    v1 = client.AppsV1Api()
-    res = v1.list_deployment_for_all_namespaces()
+def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[int, str]]:
+    """Determine whether or not cluster autoscaler is present."""
+    loading_config(cluster_name=cluster_name, regionName=region)
+    apps_v1_api = client.AppsV1Api()
+    res = apps_v1_api.list_deployment_for_all_namespaces()
     for res_i in res.items:
         if res_i.metadata.name == "cluster-autoscaler":
             return [True, res_i.spec.replicas]
     return [False, "NAN"]
 
 
-def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, region: str):
+def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, region: str) -> None:
     """Enable or disable deployment in cluster."""
     loading_config(cluster_name=cluster_name, regionName=region)
     api = client.AppsV1Api()
@@ -514,7 +515,9 @@ def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, 
     elif operation == "start":
         body = {"spec": {"replicas": mx_val}}
     else:
-        return "error"
+        logger.error("Operation must be either pause or start to auto_enable_disable!")
+        raise NotImplementedError("Operation must be either pause or start!")
+
     try:
         api.patch_namespaced_deployment(name="cluster-autoscaler", namespace="kube-system", body=body)
     except Exception as e:

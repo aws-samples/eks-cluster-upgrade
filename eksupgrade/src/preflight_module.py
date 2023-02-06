@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any, Dict, List
 
 import boto3
 import urllib3
@@ -19,24 +20,31 @@ logger = logging.getLogger(__name__)
 # Function declaration for pre flight checks
 # Verify IAM role for the Input
 def pre_flight_checks(
-    preflight, cluster_name, region, pass_vpc, update_version=False, email=False, force_upgrade=False
-):
+    preflight,
+    cluster_name: str,
+    region: str,
+    pass_vpc: bool,
+    update_version: bool = False,
+    email: bool = False,
+    force_upgrade: bool = False,
+) -> bool:
+    """Handle the pre-flight checks."""
     loading_config(cluster_name, region)
-    report = {"preflight_status": True}
-    customer_report = {}
+    report: Dict[str, Any] = {"preflight_status": True}
+    customer_report: Dict[str, Any] = {}
 
-    errors = []
+    errors: List[str] = []
     try:
         if email:
             ses_client = boto3.client("ses", region_name="ap-south-1")
             identities = ses_client.list_identities()
             if email not in identities["Identities"]:
                 ses_client.verify_email_identity(EmailAddress=email)
-                logger.info("Please check your inbox to verify your email")
+                logger.info("Please check your inbox to verify your email: %s", email)
 
-        v1 = client.CoreV1Api()
-        ret = v1.list_namespaced_service("default")
+        core_v1_api = client.CoreV1Api()
         logger.info("Verifying User IAM Role....")
+        core_v1_api.list_namespaced_service("default")
         logger.info("IAM role for user verified")
         customer_report["IAM role"] = "IAM role for user verified"
         get_cluster_version(
@@ -53,17 +61,14 @@ def pre_flight_checks(
         )
 
         if errors:
-            if preflight:
-                logger.info("Preflight unsuccessful because of following errors")
-            else:
-                logger.info("Postflight unsuccessful because of following errors")
-            for e in errors:
-                logger.info(e)
-        return report["preflight_status"]
-    except Exception as e:
-        logger.error("IAM role verification failed - Error: %s", e)
+            logger.error(
+                "%sflight unsuccessful because of the following errors: %s", "Pre" if preflight else "Post", errors
+            )
+    except Exception as error:
+        logger.error("IAM role verification failed - Error: %s", error)
         report["preflight_status"] = False
         customer_report["IAM role"] = "IAM role verification failed"
+    return report["preflight_status"]
 
 
 # Control Plane version listing
@@ -78,7 +83,8 @@ def get_cluster_version(
     customer_report,
     email,
     force_upgrade,
-):
+) -> None:
+    """Determine the cluster version."""
     loading_config(cluster_name, region)
     logger.info("Fetching cluster details .....")
     eks = boto3.client("eks", region_name=region)
@@ -118,10 +124,7 @@ def get_cluster_version(
                 )
                 report["preflight_status"] = False
                 errors.append(
-                    "Cluster with verison "
-                    + cluster_details["cluster"]["version"]
-                    + " cannot be updated to target version "
-                    + update_version
+                    f"Cluster with verison {cluster_details['cluster']['version']} cannot be updated to target version {update_version}"
                 )
                 return
         cmk_key_check(errors, cluster_name, region, cluster_details, report, customer_report)
@@ -143,58 +146,67 @@ def get_cluster_version(
         if email:
             logger.info("Delivering report via Email...")
             send_email(preflight, cluster_name, region, report, customer_report, email)
-    except Exception as e:
-        errors.append("Some error occured during preflight check process {err}".format(err=e))
+    except Exception as error:
+        errors.append(f"Some error occured during preflight check process {error}")
         customer_report["cluster version"] = "Some error occured during preflight check process"
-        logger.error("Some error occured during preflight check process - Error: %s", e)
+        logger.error("Some error occured during preflight check process - Error: %s", error)
         report["preflight_status"] = False
 
 
 # Gather Subnet Utilization fro the current cluster
-def subnet_details(errors, cluster_name, region, report, customer_report):
+def subnet_details(
+    errors: List[str], cluster_name: str, region: str, report: Dict[str, Any], customer_report: Dict[str, Any]
+) -> None:
+    """Get subnet details."""
     loading_config(cluster_name, region)
     try:
         logger.info("Checking Available IP for subnets associated with cluster.....")
         eks = boto3.client("eks", region_name=region)
         cluster_details = eks.describe_cluster(name=cluster_name)
-        subnets = []
+        subnets: List[Dict[str, Any]] = []
         customer_report["subnet"] = []
-        error = []
+        encountered_errors: List[str] = []
+
         for subnet_id in cluster_details["cluster"]["resourcesVpcConfig"]["subnetIds"]:
             ec2 = boto3.resource("ec2", region_name=region)
             subnet = ec2.Subnet(subnet_id)
 
             if subnet.available_ip_address_count < 5:
-                error.append("Subnet ID " + str(subnet_id) + " doesnt have a minimum of 5 available IP")
+                encountered_errors.append(f"Subnet ID {subnet_id} doesnt have a minimum of 5 available IP")
 
             customer_report["subnet"].append(
-                "Subnet ID "
-                + str(subnet_id)
-                + " have a "
-                + str(subnet.available_ip_address_count)
-                + " available IP address"
+                f"Subnet ID {subnet_id} have {subnet.available_ip_address_count} available IP addresses"
             )
             logger.info("Subnet ID %s have a %s available IP address", subnet_id, subnet.available_ip_address_count)
             subnets.append({subnet_id: subnet.available_ip_address_count})
-        if error:
+
+        if encountered_errors:
             report["preflight_status"] = False
             errors.append("Available IPs for Subnet verification failed")
-            logger.info("Available IPs for Subnet verification failed")
+            logger.error("Available IPs for Subnet verification failed")
             customer_report["subnet"].append("Available IP for Subnet verification failed")
-            for _error in error:
+            for _error in encountered_errors:
                 customer_report["subnet"].append(_error)
-                logger.info(_error)
+                logger.error(_error)
         else:
             customer_report["subnet"].append("Available IP for Subnet verified")
             logger.info("Available IPs for Subnet verified")
-    except Exception as e:
-        errors.append(f"Some error occured while fetching subnet details {e}")
-        logger.error("Some error occured while fetching subnet details %s", e)
+    except Exception as error:
+        errors.append(f"Some error occured while fetching subnet details {error}")
+        logger.error("Some error occured while fetching subnet details %s", error)
         report["preflight_status"] = False
 
 
 # Verification for required cluster roles
-def cluster_roles(preflight, errors, cluster_name, region, report, customer_report):
+def cluster_roles(
+    preflight: bool,
+    errors: List[str],
+    cluster_name: str,
+    region: str,
+    report: Dict[str, Any],
+    customer_report: Dict[str, Any],
+) -> None:
+    """Get cluster roles."""
     loading_config(cluster_name, region)
     with open("eksupgrade/src/S3Files/cluster_roles.json", "r", encoding="utf-8") as f:
         cluster_roles_list = json.load(f)
@@ -206,26 +218,27 @@ def cluster_roles(preflight, errors, cluster_name, region, report, customer_repo
 
     try:
         logger.info("Checking important cluster role are present or not .....")
-        available = []
-        not_available = []
+        available: List[str] = []
+        not_available: List[str] = []
         customer_report["cluster role"] = []
+
         for role in cluster_roles_list["roles"]:
             try:
-                v1 = client.RbacAuthorizationV1Api()
+                rbac_auth_v1_api = client.RbacAuthorizationV1Api()
                 fs = "metadata.name=" + role
-                res = v1.list_cluster_role(field_selector=fs)
+                res = rbac_auth_v1_api.list_cluster_role(field_selector=fs)
                 if res.items:
                     available.append(role)
                 else:
                     not_available.append(role)
                     logger.warning("Unable to find %s", role)
-            except:
+            except Exception as error:
                 customer_report["cluster role"].append(f"Some error occured while checking role for {role}")
-                logger.info("Some error occured while checking role for %s", role)
+                logger.error("Some error occured while checking role for %s - Error: %s", role, error)
 
         if report["cluster"]["version"] in cluster_roles_list.keys():
             for role in cluster_roles_list[report["cluster"]["version"]].keys():
-                v1 = client.RbacAuthorizationV1Api()
+                rbac_auth_v1_api = client.RbacAuthorizationV1Api()
                 res = eval(cluster_roles_list[report["cluster"]["version"]][role])
 
                 if not res.items:
@@ -234,6 +247,7 @@ def cluster_roles(preflight, errors, cluster_name, region, report, customer_repo
                     not_available.append(role)
                 else:
                     available.append(role)
+
         if not_available:
             customer_report["cluster role"].append("Cluster role verification failed")
             logger.info("Cluster role verification failed")
@@ -248,20 +262,22 @@ def cluster_roles(preflight, errors, cluster_name, region, report, customer_repo
                 customer_report["cluster role"].append(f"{_item} role is present in cluster")
                 logger.info("%s role is present in the cluster", _item)
             logger.info("All cluster role needed sucessfully verified")
-    except Exception as e:
-        errors.append(f"Some error occured while checking the cluster roles available {e}")
-        customer_report["cluster role"].append(f"Some error occured while checking the cluster roles available {e}")
-        logger.error("Some error occured while checking the cluster roles available - Error: %s", e)
+    except Exception as error:
+        errors.append(f"Some error occured while checking the cluster roles available {error}")
+        customer_report["cluster role"].append(f"Some error occured while checking the cluster roles available {error}")
+        logger.error("Some error occured while checking the cluster roles available - Error: %s", error)
         report["preflight_status"] = False
 
 
-# Check for Pod Security Policies
-def pod_security_policies(errors, cluster_name, region, report, customer_report):
+def pod_security_policies(
+    errors: List[str], cluster_name: str, region: str, report: Dict[str, Any], customer_report: Dict[str, Any]
+) -> None:
+    """Check for pod security policies."""
     loading_config(cluster_name, region)
     try:
-        v1 = client.PolicyV1beta1Api()
+        policy_v1_api = client.PolicyV1beta1Api()
         logger.info("Pod Security Policies .....")
-        ret = v1.list_pod_security_policy(field_selector="metadata.name=eks.privileged")
+        ret = policy_v1_api.list_pod_security_policy(field_selector="metadata.name=eks.privileged")
 
         if not ret.items:
             customer_report["pod security policy"] = "Pod Security Policy with eks.privileged role doesnt exists."
@@ -269,8 +285,8 @@ def pod_security_policies(errors, cluster_name, region, report, customer_report)
             errors.append("Pod Security Policy with eks.privileged role doesnt exists.")
             logger.info("Pod Security Policy with eks.privileged role doesnt exists.")
 
-        for i in ret.items:
-            if i.metadata.name == "eks.privileged":
+        for item in ret.items:
+            if item.metadata.name == "eks.privileged":
                 customer_report["pod security policy"] = "Pod Security Policy with eks.privileged role exists."
                 logger.info("Pod Security Policy with eks.privileged role exists.")
             else:
@@ -278,19 +294,27 @@ def pod_security_policies(errors, cluster_name, region, report, customer_report)
                 report["preflight_status"] = False
                 errors.append("Pod Security Policy with eks.privileged role doesnt exists.")
                 logger.info("Pod Security Policy with eks.privileged role doesnt exists.")
-    except Exception as e:
-        errors.append(f"Some error occured while checking for the policy security policies {e}")
+    except Exception as error:
+        errors.append(f"Some error occured while checking for the policy security policies {error}")
         customer_report["pod security policy"] = "Some error occured while checking for the policy security policies"
-        logger.error("Some error occured while checking for the policy security policies %s", e)
+        logger.error("Some error occured while checking for the policy security policies %s", error)
         report["preflight_status"] = False
 
 
-# Check for compatibility between addon and control plane versions
-def addon_version(errors, cluster_name, region, cluster_details, report, customer_report, pass_vpc):
+def addon_version(
+    errors: List[str],
+    cluster_name: str,
+    region: str,
+    cluster_details: Dict[str, Any],
+    report: Dict[str, Any],
+    customer_report: Dict[str, Any],
+    pass_vpc: bool,
+) -> None:
+    """Check for compatiblity between addon and control plane versions."""
     loading_config(cluster_name, region)
 
-    yaml_data = {}
-    config_map = {}
+    yaml_data: Dict[str, Any] = {}
+    config_map: Dict[str, Any] = {}
 
     # Version Dictionary
     with open("eksupgrade/src/S3Files/version_dict.json", "r", encoding="utf-8") as f:
@@ -339,24 +363,27 @@ def addon_version(errors, cluster_name, region, cluster_details, report, custome
 
     try:
         logger.info("Check addon version compatibility .....")
-        addons = []
+        addons: List[Dict[str, Any]] = []
         report["addon_params"] = {}
         customer_report["addons"] = {"vpc-cni": {}, "kube-proxy": {}, "coredns": {}}
-        v1 = client.AppsV1Api()
-        daemon_set = v1.list_namespaced_daemon_set("kube-system")
-        deployment = v1.list_namespaced_deployment("kube-system")
-        calico = v1.list_namespaced_daemon_set("calico-system")
+        apps_v1_api = client.AppsV1Api()
+        daemon_set = apps_v1_api.list_namespaced_daemon_set("kube-system")
+        deployment = apps_v1_api.list_namespaced_deployment("kube-system")
+        calico = apps_v1_api.list_namespaced_daemon_set("calico-system")
+
         if calico.items:
-            for cal in calico.items:
-                logger.info("Calico addon is present in cluster")
-                check_pods_running("calico", report, errors, "calico-system")
-        for ds in daemon_set.items:
-            if ds.metadata.name == "aws-node" and not pass_vpc:
-                version_str = ds.spec.template.spec.containers[0].image.split("amazon-k8s-cni:v")[1].split("-")[0]
+            logger.info("Calico addon is present in cluster")
+            check_pods_running("calico", report, errors, "calico-system")
+
+        for daemon_set_item in daemon_set.items:
+            if daemon_set_item.metadata.name == "aws-node" and not pass_vpc:
+                version_str = (
+                    daemon_set_item.spec.template.spec.containers[0].image.split("amazon-k8s-cni:v")[1].split("-")[0]
+                )
                 config = {
-                    "image": ds.spec.template.spec.containers[0].image,
-                    "volumeMount": ds.spec.template.spec.containers[0].volume_mounts,
-                    "env": ds.spec.template.spec.containers[0].env,
+                    "image": daemon_set_item.spec.template.spec.containers[0].image,
+                    "volumeMount": daemon_set_item.spec.template.spec.containers[0].volume_mounts,
+                    "env": daemon_set_item.spec.template.spec.containers[0].env,
                 }
                 target_version = version_dict[report["cluster"]["version"]]["vpc-cni"].split(".")
                 version = version_str.split(".")
@@ -380,22 +407,26 @@ def addon_version(errors, cluster_name, region, cluster_details, report, custome
                     customer_report["addons"]["vpc-cni"][
                         "version"
                     ] = "Version Not Compatible with current cluster version"
-            elif ds.metadata.name == "kube-proxy":
-                version = ds.spec.template.spec.containers[0].image.split(ds.metadata.name + ":v")[1].split("-")[0]
+            elif daemon_set_item.metadata.name == "kube-proxy":
+                version = (
+                    daemon_set_item.spec.template.spec.containers[0]
+                    .image.split(daemon_set_item.metadata.name + ":v")[1]
+                    .split("-")[0]
+                )
                 config = {
-                    "image": ds.spec.template.spec.containers[0].image,
-                    "volumeMount": ds.spec.template.spec.containers[0].volume_mounts,
-                    "env": ds.spec.template.spec.containers[0].env,
+                    "image": daemon_set_item.spec.template.spec.containers[0].image,
+                    "volumeMount": daemon_set_item.spec.template.spec.containers[0].volume_mounts,
+                    "env": daemon_set_item.spec.template.spec.containers[0].env,
                 }
                 check_pods_running("kube-proxy", report, errors)
-                logger.info("%s %s", version_dict[report["cluster"]["version"]][ds.metadata.name], version)
-                if version_dict[report["cluster"]["version"]][ds.metadata.name] == version:
-                    addons.append({"name": ds.metadata.name, "version": version, "update": False})
+                logger.info("%s %s", version_dict[report["cluster"]["version"]][daemon_set_item.metadata.name], version)
+                if version_dict[report["cluster"]["version"]][daemon_set_item.metadata.name] == version:
+                    addons.append({"name": daemon_set_item.metadata.name, "version": version, "update": False})
                     logger.info("kube-proxy version up to date")
-                    customer_report["addons"][ds.metadata.name]["version"] = "Up to date"
+                    customer_report["addons"][daemon_set_item.metadata.name]["version"] = "Up to date"
                     check_addons_params(
                         config,
-                        ds.metadata.name,
+                        daemon_set_item.metadata.name,
                         cluster_details,
                         config_map,
                         yaml_data,
@@ -403,27 +434,31 @@ def addon_version(errors, cluster_name, region, cluster_details, report, custome
                         customer_report,
                     )
                 else:
-                    addons.append({"name": ds.metadata.name, "version": version, "update": True})
+                    addons.append({"name": daemon_set_item.metadata.name, "version": version, "update": True})
                     logger.info("kube-proxy version not compatible")
-                    customer_report["addons"][ds.metadata.name][
+                    customer_report["addons"][daemon_set_item.metadata.name][
                         "version"
                     ] = "Version Not Compatible with current cluster version"
-        for dp in deployment.items:
-            if dp.metadata.name == "coredns":
-                version = dp.spec.template.spec.containers[0].image.split(dp.metadata.name + ":v")[1].split("-")[0]
+        for deployment_item in deployment.items:
+            if deployment_item.metadata.name == "coredns":
+                version = (
+                    deployment_item.spec.template.spec.containers[0]
+                    .image.split(deployment_item.metadata.name + ":v")[1]
+                    .split("-")[0]
+                )
                 config = {
-                    "image": dp.spec.template.spec.containers[0].image,
-                    "volumeMount": dp.spec.template.spec.containers[0].volume_mounts,
-                    "env": dp.spec.template.spec.containers[0].env,
+                    "image": deployment_item.spec.template.spec.containers[0].image,
+                    "volumeMount": deployment_item.spec.template.spec.containers[0].volume_mounts,
+                    "env": deployment_item.spec.template.spec.containers[0].env,
                 }
                 check_pods_running("coredns", report, errors)
-                if version_dict[report["cluster"]["version"]][dp.metadata.name] == version:
-                    addons.append({"name": dp.metadata.name, "version": version, "update": False})
-                    customer_report["addons"][dp.metadata.name]["version"] = "Up to date"
+                if version_dict[report["cluster"]["version"]][deployment_item.metadata.name] == version:
+                    addons.append({"name": deployment_item.metadata.name, "version": version, "update": False})
+                    customer_report["addons"][deployment_item.metadata.name]["version"] = "Up to date"
                     logger.info("core-dns version up to date")
                     check_addons_params(
                         config,
-                        dp.metadata.name,
+                        deployment_item.metadata.name,
                         cluster_details,
                         config_map,
                         yaml_data,
@@ -431,25 +466,26 @@ def addon_version(errors, cluster_name, region, cluster_details, report, custome
                         customer_report,
                     )
                 else:
-                    addons.append({"name": dp.metadata.name, "version": version, "update": True})
+                    addons.append({"name": deployment_item.metadata.name, "version": version, "update": True})
                     logger.info("core-dns version up not compatible")
-                    customer_report["addons"][dp.metadata.name][
+                    customer_report["addons"][deployment_item.metadata.name][
                         "version"
                     ] = "Version Not Compatible with current cluster version"
         report["addons"] = addons
         customer_report["addons_version"] = addons
-    except Exception as e:
-        errors.append(f"Some error occured while checking the addon version {e}")
-        logger.error("Some error occured while checking the addon version - Error: %s", e)
+    except Exception as error:
+        errors.append(f"Some error occured while checking the addon version {error}")
+        logger.error("Some error occured while checking the addon version - Error: %s", error)
         report["preflight_status"] = False
 
 
-# Function to check for addons pod to be in running state
-def check_pods_running(addon, report, errors, namespace="kube-system"):
+def check_pods_running(addon: str, report: Dict[str, Any], errors: List[str], namespace: str = "kube-system") -> None:
+    """Check whether or not the addon pod is in a running state."""
     try:
-        v1 = client.CoreV1Api()
+        core_v1_api = client.CoreV1Api()
         count = 0
-        rep = v1.list_namespaced_pod(namespace)
+        rep = core_v1_api.list_namespaced_pod(namespace)
+
         for pod in rep.items:
             if addon in pod.metadata.name:
                 count = count + 1
@@ -464,22 +500,22 @@ def check_pods_running(addon, report, errors, namespace="kube-system"):
             logger.error("%s pod is not present in the cluster", addon)
             report["preflight_status"] = False
             errors.append(f"{addon} pod is not present in the cluster")
-    except Exception as e:
-        errors.append(f"Some error occured while checking for addon pods to be running {e}")
-        logger.info("Some error occured while checking for addon pods to be running - Error: %s", e)
+    except Exception as error:
+        errors.append(f"Some error occured while checking for addon pods to be running {error}")
+        logger.info("Some error occured while checking for addon pods to be running - Error: %s", error)
         report["preflight_status"] = False
 
 
-# Function to check the volume mount and env in cluster and original YAML files for addons
 def check_addons_params(
-    config,
-    name,
-    cluster_details,
-    config_map,
-    yaml_data,
-    report,
-    customer_report,
-):
+    config: Dict[str, Any],
+    name: str,
+    cluster_details: Dict[str, Any],
+    config_map: Dict[str, Any],
+    yaml_data: Dict[str, Any],
+    report: Dict[str, Any],
+    customer_report: Dict[str, Any],
+) -> None:
+    """Check the volume mount and environment in cluster and original YAML for addons."""
     s3_config = yaml_data[name]
     logger.info("************* Parameter check for %s *************", name)
     # Compare image name
@@ -491,35 +527,40 @@ def check_addons_params(
     if image_part_1 and image_part_2:
         report["addon_params"][name] = {"image": config["image"]}
         customer_report["addons"][name]["image"] = "Image Verified"
-        logger.info("Image verified")
+        logger.error("Image verified")
     else:
         customer_report["addons"][name]["image"] = "Image Verification Failed"
-        logger.info("Image verification failed")
+        logger.error("Image verification failed")
 
     # Compare Volume Mounts
     mount_paths = []
     customer_report["addons"][name]["mount_paths"] = {}
     report["addon_params"][name]["mount_paths"] = {}
     remaining = []
+
     for i in range(len(s3_config["volumeMount"])):
         mount_paths.append(s3_config["volumeMount"][i]["mountPath"])
+
     for i in range(len(config["volumeMount"])):
         if config["volumeMount"][i].mount_path in mount_paths:
             mount_paths.remove(config["volumeMount"][i].mount_path)
         else:
             remaining.append(config["volumeMount"][i].mount_path)
+
     if mount_paths:
         customer_report["addons"][name]["mount_paths"]["message"] = "Default mount paths are missing"
         report["addon_params"][name]["mount_paths"]["custom"] = True
         report["addon_params"][name]["mount_paths"]["default"] = " ".join(map(str, mount_paths))
         customer_report["addons"][name]["mount_paths"]["default-mountpaths"] = " ".join(map(str, mount_paths))
         logger.info("These mount paths are not present %s", " ".join(map(str, mount_paths)))
+
     if remaining:
         customer_report["addons"][name]["mount_paths"]["message"] = "There are additional mount paths present"
         report["addon_params"][name]["mount_paths"]["custom"] = True
         report["addon_params"][name]["mount_paths"]["user-defined"] = " ".join(map(str, mount_paths))
         customer_report["addons"][name]["mount_paths"]["userdefined-mountpaths"] = " ".join(map(str, mount_paths))
         logger.info("These user defined mount paths are present %s", " ".join(map(str, mount_paths)))
+
     if not mount_paths and not remaining:
         report["addon_params"][name]["mount_paths"]["custom"] = False
         customer_report["addons"][name]["mount_paths"]["message"] = "Mount paths verified successfully"
@@ -531,13 +572,16 @@ def check_addons_params(
         report["addon_params"][name]["envs"] = {}
         envs = []
         extra_envs = []
+
         for i in range(len(s3_config["env"])):
             envs.append(s3_config["env"][i]["name"])
+
         for i in range(len(config["env"])):
             if config["env"][i].name in envs:
                 envs.remove(config["env"][i].name)
             else:
                 extra_envs.append(config["env"][i].name)
+
         if envs:
             customer_report["addons"][name]["env"]["message"] = "Default envs are missing"
             report["addon_params"][name]["envs"]["custom"] = True
@@ -551,10 +595,12 @@ def check_addons_params(
             customer_report["addons"][name]["env"]["message"] = "There are additional envs present"
             logger.info("These user defined envs are present %s", " ".join(map(str, extra_envs)))
             customer_report["addons"][name]["env"]["userdefined-envs"] = " ".join(map(str, extra_envs))
+
         if not envs and not extra_envs:
             report["addon_params"][name]["envs"]["custom"] = False
             customer_report["addons"][name]["env"]["message"] = "Envs verified successfully"
             logger.info("Envs verification successful")
+
     if name == "coredns":
         customer_report["addons"][name]["corefile"] = {}
         report["addon_params"][name]["corefile"] = {}
@@ -571,9 +617,9 @@ def check_addons_params(
             "{",
             "}",
         ]
-        v1 = client.CoreV1Api()
+        core_v1_api = client.CoreV1Api()
         default = []
-        ret = v1.list_config_map_for_all_namespaces(field_selector="metadata.name=coredns")
+        ret = core_v1_api.list_config_map_for_all_namespaces(field_selector="metadata.name=coredns")
         corefile = yaml.safe_load(ret.items[0].data["Corefile"]).split(".:53")[1]
         for i in arr:
             if corefile.find(i) == -1:
@@ -607,8 +653,9 @@ def check_addons_params(
         report["addon_params"][name]["server-endpoint"] = {}
         customer_report["addons"][name]["certificate-authority"] = {}
         customer_report["addons"][name]["server-endpoint"] = {}
-        v1 = client.CoreV1Api()
-        ret = v1.list_config_map_for_all_namespaces(field_selector="metadata.name=kube-proxy")
+        core_v1_api = client.CoreV1Api()
+        ret = core_v1_api.list_config_map_for_all_namespaces(field_selector="metadata.name=kube-proxy")
+
         if (
             yaml.safe_load(ret.items[0].data["kubeconfig"])["clusters"][0]["cluster"]["certificate-authority"]
             == config_map["certificate-authority"]
@@ -628,6 +675,7 @@ def check_addons_params(
                 ret.items[0].data["kubeconfig"]
             )["clusters"][0]["cluster"]["certificate-authority"]
             logger.info("Certificate Verification failed in kube config")
+
         if (
             yaml.safe_load(ret.items[0].data["kubeconfig"])["clusters"][0]["cluster"]["server"]
             == cluster_details["cluster"]["endpoint"].lower()
@@ -647,12 +695,20 @@ def check_addons_params(
             logger.info(" Server end point verification failed")
 
 
-def pod_disruption_budget(errors, cluster_name, region, report, customer_report, force_upgrade):
+def pod_disruption_budget(
+    errors: List[str],
+    cluster_name: str,
+    region: str,
+    report: Dict[str, Any],
+    customer_report: Dict[str, Any],
+    force_upgrade: bool,
+) -> None:
+    """Get pod disruption budgets."""
     loading_config(cluster_name, region)
     logger.info("Fetching Pod Disruption Budget Details....")
     try:
-        v1 = client.PolicyV1beta1Api()
-        ret = v1.list_pod_disruption_budget_for_all_namespaces()
+        policy_v1_api = client.PolicyV1beta1Api()
+        ret = policy_v1_api.list_pod_disruption_budget_for_all_namespaces()
         if not ret.items:
             customer_report["pod disruption budget"] = "No Pod Disruption Budget exists in cluster"
             logger.info("No Pod Disruption Budget exists in cluster")
@@ -676,9 +732,9 @@ def pod_disruption_budget(errors, cluster_name, region, report, customer_report,
                     str(max_available),
                     str(min_available),
                 )
-            v1 = client.CoreV1Api()
+            core_v1_api = client.CoreV1Api()
             pods_and_nodes = []
-            ret = v1.list_pod_for_all_namespaces(watch=False)
+            ret = core_v1_api.list_pod_for_all_namespaces(watch=False)
 
             for i in ret.items:
                 pods_and_nodes.append(
@@ -686,20 +742,23 @@ def pod_disruption_budget(errors, cluster_name, region, report, customer_report,
                 )
             report["pdb"]["pods"] = pods_and_nodes
             logger.info(pods_and_nodes)
-    except Exception as e:
-        errors.append(f"Error ocurred while checking for pod disruption budget {e}")
+    except Exception as error:
+        errors.append(f"Error ocurred while checking for pod disruption budget {error}")
         customer_report["pod disruption budget"] = "Error ocurred while checking for pod disruption budget"
-        logger.error("Error ocurred while checking for pod disruption budget - Error: %s", e)
+        logger.error("Error ocurred while checking for pod disruption budget - Error: %s", error)
         report["preflight_status"] = False
 
 
-def cluster_auto_scaler(errors, cluster_name, region, report, customer_report):
+def cluster_auto_scaler(
+    errors: List[str], cluster_name: str, region: str, report: Dict[str, Any], customer_report: Dict[str, Any]
+) -> None:
+    """Get cluster autoscaler details."""
     loading_config(cluster_name, region)
     logger.info("Fetching Cluster Auto Scaler Details....")
     try:
         eks = boto3.client("eks", region_name=region)
         cluster_details = eks.describe_cluster(name=cluster_name)
-        val = cluster_details["cluster"]["version"]
+        val: str = cluster_details["cluster"]["version"]
         l = val.split(".")
         v1 = client.AppsV1Api()
         res = v1.list_deployment_for_all_namespaces()
@@ -726,10 +785,10 @@ def cluster_auto_scaler(errors, cluster_name, region, report, customer_report):
                 continue
         customer_report["cluster autoscaler"] = "Cluster Autoscaler doesn't exists"
         logger.info("Cluster Autoscaler doesn't exists")
-    except Exception as e:
-        errors.append(f"Error occured while checking for the cluster autoscaler {e}")
-        customer_report["cluster autoscaler"] = f"Error occured while checking for the cluster autoscaler {e}"
-        logger.error("Error occured while checking for the cluster autoscaler - Error: %s", e)
+    except Exception as error:
+        errors.append(f"Error occured while checking for the cluster autoscaler {error}")
+        customer_report["cluster autoscaler"] = f"Error occured while checking for the cluster autoscaler {error}"
+        logger.error("Error occured while checking for the cluster autoscaler - Error: %s", error)
         report["preflight_status"] = False
 
 

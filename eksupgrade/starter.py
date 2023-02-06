@@ -172,8 +172,8 @@ def main(args) -> None:
         # upgrade Logic
         logger.info("The cluster upgrade process has started")
         if (
-            is_cluster_exists(Clustname=cluster_name, regionName=region) == "ACTIVE"
-            or is_cluster_exists(Clustname=cluster_name, regionName=region) == "UPDATING"
+            is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE"
+            or is_cluster_exists(cluster_name=cluster_name, region=region) == "UPDATING"
         ):
             present_version = status_of_cluster(cluster_name, region)[1]
             logger.info("The current version of the cluster was detected as: %s", present_version)
@@ -182,7 +182,7 @@ def main(args) -> None:
 
         # Checking Cluster is Active or Not Befor Making an Update
         start = time.time()
-        if is_cluster_exists(Clustname=cluster_name, regionName=region) == "ACTIVE":
+        if is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE":
             # if eksctl flag is enabled.
             if args.eksctl:
                 logger.info("updating using EKSCTL")
@@ -193,7 +193,7 @@ def main(args) -> None:
                 else:
                     logger.info("After update check for cluster completed successfully")
                 sys.exit()
-            update_cluster(Clustname=cluster_name, Version=to_update, regionName=region)
+            update_cluster(cluster_name=cluster_name, version=to_update, region=region)
         time.sleep(5)
 
         # Making Sure the Cluster is Updated
