@@ -3,15 +3,21 @@ from __future__ import annotations
 
 import argparse
 import logging
-from typing import List
+import sys
+from typing import List, Optional
 
+from eksupgrade import __version__
 from eksupgrade.starter import main
 
 logger = logging.getLogger(__name__)
 
 
-def entry() -> None:
+def entry(args: Optional[List[str]] = None) -> None:
     """Handle the CLI entrypoint argument parsing."""
+    # If no arguments are provided directly to the function, default to input.
+    if not args:
+        args = sys.argv[1:]
+
     example_text = """
 example:
 
@@ -33,6 +39,10 @@ Skip upgrade workflow:
 Set log level to console (default to INFO):
 
     -> eksupgrade cluster_name new_version aws_region --log-level debug
+
+Display the eksupgrade version:
+
+    -> eksupgrade --version
 
 """
 
@@ -67,7 +77,7 @@ Set log level to console (default to INFO):
     )
     parser.add_argument("name", help="Cluster Name")
     parser.add_argument("version", help="new version which you want to update")
-    parser.add_argument("region", help="Give the region name " + ", ".join(regions_list))
+    parser.add_argument("region", help=f"Give the region name {', '.join(regions_list)}")
     parser.add_argument(
         "--pass_vpc", action="store_true", default=False, help="this --pass-vpc will skip the vpc cni upgrade"
     )
@@ -83,10 +93,11 @@ Set log level to console (default to INFO):
     parser.add_argument(
         "--log-level", default="INFO", help="The log level to be displayed in the console. Default to: INFO"
     )
-    args = parser.parse_args()
-    logging.basicConfig(level=args.log_level.upper())
-    main(args)
+    parser.add_argument("--version", action="version", version=f"eksupgrade {__version__}")
+    parsed_arguments = parser.parse_args(args)
+    logging.basicConfig(level=parsed_arguments.log_level.upper())
+    main(parsed_arguments)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     entry()
