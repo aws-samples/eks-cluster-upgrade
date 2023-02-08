@@ -65,5 +65,36 @@
           "scheduling.k8s.io/v1beta1": "scheduling.k8s.io/v1",
           "storage.k8s.io/v1beta1": "storage.k8s.io/v1"
         }
+      },
+      "1.23": {
+        "all-resources": {}
+      },
+      "1.24": {
+        "all-resources": {}
+      },
+      "1.25": {
+        "all-resources": {
+          "batch/v1beta1": "batch/v1",
+          "discovery.k8s.io/v1beta1": "discovery.k8s.io/v1",
+          "events.k8s.io/v1beta1": "events.k8s.io/v1",
+          "autoscaling/v2beta1": "autoscaling/v2",
+          "policy/v1beta1": "policy/v1",
+          "node.k8s.io/v1beta1": "node.k8s.io/v1"
+        }
+      },
+      "1.26": {
+        "flowcontrol.apiserver.k8s.io/v1beta1": "flowcontrol.apiserver.k8s.io/v1beta3",
+        "autoscaling/v2beta2": "autoscaling/v2"
+      },
+      "1.27": {
+        "storage.k8s.io/v1beta1": "storage.k8s.io/v1"
+      },
+      "1.28": {
+        "all-resources": {}
+      },
+      "1.29": {
+        "all-resources": {
+          "flowcontrol.apiserver.k8s.io/v1beta2": "flowcontrol.apiserver.k8s.io/v1beta3"
+        }
       }
   }

@@ -246,7 +246,7 @@ def main(args) -> None:
 
         # checking auto scaler present and the value associated from it
 
-        is_present, replicas_value = is_cluster_auto_scaler_present(ClusterName=cluster_name, regionName=region)
+        is_present, replicas_value = is_cluster_auto_scaler_present(cluster_name=cluster_name, region=region)
 
         if is_present:
             cluster_auto_enable_disable(
