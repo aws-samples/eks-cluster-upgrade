@@ -356,7 +356,7 @@ def get_versions_by_addon(addon: str, version: str, region: str) -> Dict[str, An
 
 @cache
 def get_default_version(addon: str, version: str, region: str) -> str:
-    """Get target addon versions."""
+    """Get the EKS default version of the `addon`."""
     addon_dict: Dict[str, Any] = get_versions_by_addon(addon, version, region)
     return next(
         item["addonVersion"]
