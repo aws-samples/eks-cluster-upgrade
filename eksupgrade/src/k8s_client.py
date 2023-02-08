@@ -462,10 +462,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
                         apps_v1_api.patch_namespaced_daemon_set(
                             name="kube-proxy", namespace="kube-system", body=body, pretty=True
                         )
-                        _update_response_proxy = update_eks_addon(
-                            cluster_name, "kube-proxy", region_name, kubeproxy_new
-                        )
-                        logger.info("Update kube-proxy Call: %s", _update_response_proxy)
+                        update_eks_addon(cluster_name, "kube-proxy", region_name, kubeproxy_new)
                         flag_proxy = False
                     time.sleep(20)
                     new_pod_name = sort_pods(
@@ -512,8 +509,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
                     apps_v1_api.patch_namespaced_daemon_set(
                         namespace="kube-system", name="aws-node", body=body, pretty=True
                     )
-                    _update_response_cni = update_eks_addon(cluster_name, "vpc-cni", region_name, cni_new)
-                    logger.info("Update CNI Call: %s", _update_response_cni)
+                    update_eks_addon(cluster_name, "vpc-cni", region_name, cni_new)
                     flag_vpc = False
                 time.sleep(20)
                 new_pod_name = sort_pods(
@@ -530,20 +526,6 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
     except Exception as error:
         logger.error("Exception encountered while attempting to update the addons - Error: %s", error)
         raise error
-
-
-def delete_pd_policy(pd_name: str, namespace: str = "default") -> None:
-    """Attempt to delete a Pod Disruption policy."""
-    try:
-        api_cli = client.PolicyV1beta1Api()
-    except AttributeError:
-        api_cli = client.PolicyV1Api()
-
-    try:
-        api_response = api_cli.delete_namespaced_pod_disruption_budget(name=pd_name, namespace=namespace)
-        logger.debug(api_response)
-    except ApiException as error:
-        logger.error("Exception when calling PolicyV1beta1Api->delete_namespaced_pod_disruption_budget: %s", error)
 
 
 def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[int, str]]:
