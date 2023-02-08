@@ -12,7 +12,7 @@ from kubernetes import client
 from kubernetes.client import *
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from .k8s_client import loading_config
+from .k8s_client import get_default_version, loading_config
 
 logger = logging.getLogger(__name__)
 
@@ -316,9 +316,14 @@ def addon_version(
     yaml_data: Dict[str, Any] = {}
     config_map: Dict[str, Any] = {}
 
-    # Version Dictionary
-    with open("eksupgrade/src/S3Files/version_dict.json", "r", encoding="utf-8") as f:
-        version_dict = json.load(f)
+    default_version_kwargs: Dict[str, Any] = {
+        "version": report["cluster"]["version"],
+        "region": region,
+    }
+
+    coredns_target_version: str = get_default_version("coredns", **default_version_kwargs).split("-")[0].lstrip("v")
+    proxy_target_version: str = get_default_version("kube-proxy", **default_version_kwargs).split("-")[0].lstrip("v")
+    cni_target_version: str = get_default_version("vpc-cni", **default_version_kwargs).split("-")[0].lstrip("v")
 
     # Kube Proxy config
     with open("eksupgrade/src/S3Files/kube-proxy.json", "r", encoding="utf-8") as f:
@@ -385,10 +390,11 @@ def addon_version(
                     "volumeMount": daemon_set_item.spec.template.spec.containers[0].volume_mounts,
                     "env": daemon_set_item.spec.template.spec.containers[0].env,
                 }
-                target_version = version_dict[report["cluster"]["version"]]["vpc-cni"].split(".")
                 version = version_str.split(".")
+                logger.info("VPC CNI found version: %s - version_str: %s", version, version_str)
+                logger.info("Likely desired vpc-cni version: %s", cni_target_version)
                 check_pods_running("aws-node", report, errors)
-                if int("".join(version)) >= int("170"):
+                if int("".join(version)) >= 170:
                     addons.append({"name": "vpc-cni", "version": version_str, "update": False})
                     customer_report["addons"]["vpc-cni"]["version"] = "Up to date"
                     logger.info("vpc-cni version up to date")
@@ -406,7 +412,7 @@ def addon_version(
                     logger.info("vpc-cni version is not compatible")
                     customer_report["addons"]["vpc-cni"][
                         "version"
-                    ] = "Version Not Compatible with current cluster version"
+                    ] = f"Version: {cni_target_version} not compatible with current cluster version: {version_str}"
             elif daemon_set_item.metadata.name == "kube-proxy":
                 version = (
                     daemon_set_item.spec.template.spec.containers[0]
@@ -419,8 +425,12 @@ def addon_version(
                     "env": daemon_set_item.spec.template.spec.containers[0].env,
                 }
                 check_pods_running("kube-proxy", report, errors)
-                logger.info("%s %s", version_dict[report["cluster"]["version"]][daemon_set_item.metadata.name], version)
-                if version_dict[report["cluster"]["version"]][daemon_set_item.metadata.name] == version:
+                logger.info(
+                    "Checking if kube-proxy target version: %s is equal to the current version: %s",
+                    proxy_target_version,
+                    version,
+                )
+                if proxy_target_version == version:
                     addons.append({"name": daemon_set_item.metadata.name, "version": version, "update": False})
                     logger.info("kube-proxy version up to date")
                     customer_report["addons"][daemon_set_item.metadata.name]["version"] = "Up to date"
@@ -438,7 +448,7 @@ def addon_version(
                     logger.info("kube-proxy version not compatible")
                     customer_report["addons"][daemon_set_item.metadata.name][
                         "version"
-                    ] = "Version Not Compatible with current cluster version"
+                    ] = f"Version: {proxy_target_version} not compatible with current cluster version: {version}"
         for deployment_item in deployment.items:
             if deployment_item.metadata.name == "coredns":
                 version = (
@@ -452,7 +462,12 @@ def addon_version(
                     "env": deployment_item.spec.template.spec.containers[0].env,
                 }
                 check_pods_running("coredns", report, errors)
-                if version_dict[report["cluster"]["version"]][deployment_item.metadata.name] == version:
+                logger.info(
+                    "Checking if coredns target version: %s is equal to the current version: %s",
+                    coredns_target_version,
+                    version,
+                )
+                if coredns_target_version == version:
                     addons.append({"name": deployment_item.metadata.name, "version": version, "update": False})
                     customer_report["addons"][deployment_item.metadata.name]["version"] = "Up to date"
                     logger.info("core-dns version up to date")
@@ -470,7 +485,7 @@ def addon_version(
                     logger.info("core-dns version up not compatible")
                     customer_report["addons"][deployment_item.metadata.name][
                         "version"
-                    ] = "Version Not Compatible with current cluster version"
+                    ] = f"Version: {coredns_target_version} not compatible with current cluster version: {version}"
         report["addons"] = addons
         customer_report["addons_version"] = addons
     except Exception as error:
@@ -783,8 +798,8 @@ def cluster_auto_scaler(
                 return
             else:
                 continue
-        customer_report["cluster autoscaler"] = "Cluster Autoscaler doesn't exists"
-        logger.info("Cluster Autoscaler doesn't exists")
+        customer_report["cluster autoscaler"] = "Cluster Autoscaler doesn't exist"
+        logger.info("Cluster Autoscaler doesn't exist")
     except Exception as error:
         errors.append(f"Error occured while checking for the cluster autoscaler {error}")
         customer_report["cluster autoscaler"] = f"Error occured while checking for the cluster autoscaler {error}"
@@ -1283,7 +1298,7 @@ def send_email(preflight, cluster_name, region, report, customer_report, email):
             if "image" in customer_report["addons"]["vpc-cni"]:
                 htmlStart = (
                     htmlStart
-                    + "<p>VPC Cni </p>"
+                    + "<p>VPC CNI </p>"
                     + "<table><thead><td>Image</td><td>Mount Path</td><td>Version</td><td>Env</td></thead><tbody><tr>"
                 )
                 htmlStart = htmlStart + "<td>" + customer_report["addons"]["vpc-cni"]["image"] + "</td>"
