@@ -542,7 +542,7 @@ def check_addons_params(
     if image_part_1 and image_part_2:
         report["addon_params"][name] = {"image": config["image"]}
         customer_report["addons"][name]["image"] = "Image Verified"
-        logger.error("Image verified")
+        logger.info("Image verified")
     else:
         customer_report["addons"][name]["image"] = "Image Verification Failed"
         logger.error("Image verification failed")
