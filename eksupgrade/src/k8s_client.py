@@ -327,7 +327,7 @@ def get_addon_update_kwargs(cluster_name: str, addon: str, region: str) -> Dict[
 
 
 def update_eks_addon(cluster_name: str, addon: str, region: str, version: str) -> Dict[str, Any]:
-    """Get target addon versions."""
+    """Update `addon` to `version`"""
     logger.info("Updating the EKS cluster's %s add-on version via the EKS API...", addon)
     eks_client = boto3.client("eks", region_name=region)
     update_kwargs: Dict[str, Any] = get_addon_update_kwargs(cluster_name, addon, region)
