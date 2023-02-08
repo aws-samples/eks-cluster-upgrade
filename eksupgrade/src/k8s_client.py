@@ -303,7 +303,7 @@ def sort_pods(
 
 @cache
 def get_addon_details(cluster_name: str, addon: str, region: str) -> Dict[str, Any]:
-    """Get target addon versions."""
+    """Get addon details which includes its current version"""
     eks_client = boto3.client("eks", region_name=region)
     addon_details: Dict[str, Any] = eks_client.describe_addon(clusterName=cluster_name, addonName=addon).get(
         "addon", {}
