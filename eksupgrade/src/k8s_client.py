@@ -339,7 +339,7 @@ def update_eks_addon(cluster_name: str, addon: str, region: str, version: str) -
 
 @cache
 def get_addon_versions(version: str, region: str) -> List[Dict[str, Any]]:
-    """Get target addon versions."""
+    """Get addon versions for the associated Kubernetes `version`."""
     eks_client = boto3.client("eks", region_name=region)
     addon_versions: List[Dict[str, Any]] = eks_client.describe_addon_versions(kubernetesVersion=version).get(
         "addons", []
