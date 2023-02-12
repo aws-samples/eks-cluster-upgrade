@@ -212,9 +212,9 @@ def main(args) -> None:
         finding_manged = get_asg_node_groups(cluster_name, region)
         logger.info("The Manged Node Groups Found are %s", ",".join(finding_manged))
         asg_list = get_asgs(cluster_name, region)
-        logger.info("The Asg's Found Are %s", ",".join(asg_list))
+        logger.info("The ASGs Found Are %s", ",".join(asg_list))
 
-        # removing selfmanaged from manged so that we don't update them again
+        # removing self-managed from managed so that we don't update them again
         asg_list_self_managed = list(set(asg_list) - set(finding_manged))
 
         # addons update
@@ -298,5 +298,5 @@ def main(args) -> None:
                 )
                 logger.info("Cluster Autoscaler is Enabled Again")
             except Exception as e:
-                logger.error("Auto-enable failed and must be done manually! Error: %s", e)
+                logger.error("Autoenable failed and must be done manually! Error: %s", e)
         logger.error("Exception encountered in main method - Error: %s", e)
