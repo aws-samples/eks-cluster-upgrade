@@ -6,6 +6,8 @@ import logging
 import sys
 from typing import List, Optional
 
+import boto3
+
 from eksupgrade import __version__
 from eksupgrade.starter import main
 
@@ -46,33 +48,7 @@ Display the eksupgrade version:
 
 """
 
-    regions_list: List[str] = [
-        "af-south-1",
-        "eu-north-1",
-        "ap-south-1",
-        "eu-west-3",
-        "eu-west-2",
-        "eu-south-1",
-        "eu-west-1",
-        "ap-northeast-3",
-        "ap-northeast-2",
-        "me-central-1",
-        "me-south-1",
-        "ap-northeast-1",
-        "sa-east-1",
-        "ca-central-1",
-        "ap-east-1",
-        "ap-southeast-1",
-        "ap-southeast-2",
-        "ap-southeast-3",
-        "eu-central-1",
-        "us-east-1",
-        "us-east-2",
-        "us-west-1",
-        "us-west-2",
-        "us-gov-east-1",
-        "us-gov-west-1",
-    ]
+    regions_list: List[str] = get_eks_supported_regions()
 
     parser = argparse.ArgumentParser(
         description="Eks Cluster OneClick Upgrade",
@@ -101,6 +77,16 @@ Display the eksupgrade version:
     parsed_arguments = parser.parse_args(args)
     logging.basicConfig(level=parsed_arguments.log_level.upper())
     main(parsed_arguments)
+
+
+def get_eks_supported_regions() -> List[str]:
+    """Retrieve the active regions supporting EKS across aws and us-gov partitions"""
+    session = boto3.session.Session()
+    partition_list: List[str] = ["aws", "aws-us-gov"]
+    regions_list: List[str] = []
+    for partition in partition_list:
+        regions_list.extend(session.get_available_regions("eks", partition))
+    return regions_list
 
 
 if __name__ == "__main__":  # pragma: no cover
