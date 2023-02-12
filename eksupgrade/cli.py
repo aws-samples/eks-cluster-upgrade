@@ -21,29 +21,27 @@ def entry(args: Optional[List[str]] = None) -> None:
     example_text = """
 example:
 
-            eksupgrade name_of_cluster new_version region
-
+  eksupgrade <name> <version> <region>
 
 Force pod eviction when you have PDB (Pod Disruption Budget):
 
-    -> eksupgrade cluster_name new_version aws_region --force
+  eksupgrade <name> <version> <region>n --force
 
 Skip VPC CNI upgrade:
 
-    -> eksupgrade cluster_name new_version aws_region --pass_vpc
+  eksupgrade <name> <version> <region> --pass_vpc
 
 Skip upgrade workflow:
 
-    -> eksupgrade cluster_name new_version aws_region --preflight
+  eksupgrade <name> <version> <region> --preflight
 
 Set log level to console (default to INFO):
 
-    -> eksupgrade cluster_name new_version aws_region --log-level debug
+  eksupgrade <name> <version> <region> --log-level debug
 
 Display the eksupgrade version:
 
-    -> eksupgrade --version
-
+  eksupgrade --version
 """
 
     regions_list: List[str] = [
@@ -75,7 +73,7 @@ Display the eksupgrade version:
     ]
 
     parser = argparse.ArgumentParser(
-        description="Eks Cluster OneClick Upgrade",
+        description="Amazon EKS cluster upgrade",
         epilog=example_text,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -89,11 +87,9 @@ Display the eksupgrade version:
     parser.add_argument("--force", action="store_true", default=False, help="force pod eviction when you have pdb")
     # Eksctl will be added in future version
     parser.add_argument("--eksctl", action="store_true", default=False, help="eksctl upgrade process")
-    parser.add_argument("--preflight", action="store_true", default=False, help="Run preflight check without upgrade")
+    parser.add_argument("--preflight", action="store_true", default=False, help="Run pre-flight check without upgrade")
     parser.add_argument("--email", default=False, help="Email for sharing the preflight report")
-    parser.add_argument(
-        "--parallel", action="store_true", default=False, help="Parllel Upgrade all node groups together "
-    )
+    parser.add_argument("--parallel", action="store_true", default=False, help="Upgrade all nodegroups in parallel")
     parser.add_argument(
         "--log-level", default="INFO", help="The log level to be displayed in the console. Default to: INFO"
     )
