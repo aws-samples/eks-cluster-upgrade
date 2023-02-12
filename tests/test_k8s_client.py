@@ -31,4 +31,4 @@ def test_get_bearer_token(sts_client, eks_cluster, cluster_name, region) -> None
 def test_loading_config(eks_client, eks_cluster, cluster_name, region) -> None:
     """Test the loading_config method."""
     result = loading_config(cluster_name, regionName=region)
-    assert result == "Initialiazed"
+    assert result == "Initialized"

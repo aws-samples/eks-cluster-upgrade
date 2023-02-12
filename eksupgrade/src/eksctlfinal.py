@@ -1,4 +1,4 @@
-"""Define the EKSCTL CLI specifici workflows."""
+"""Define the EKSCTL CLI specific workflows."""
 from __future__ import annotations
 
 import base64
@@ -48,7 +48,7 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
 
     base64_url = base64.urlsafe_b64encode(signed_url.encode("utf-8")).decode("utf-8")
 
-    # remove any base64 encoding padding and returing the kubernets token
+    # remove any base64 encoding padding and returning the kubernetes token
     return "k8s-aws-v1." + re.sub(r"=*", "", base64_url)
 
 
@@ -73,14 +73,14 @@ def upgrade_cluster(region, clust_name, d, bclient, version):
     logger.info("The cluster Upgrade Started At %s", str(start_time))
 
     response = bclient.describe_cluster(name=clust_name)  # to describe the cluster using boto3
-    logger.info("cluster verion before upgrade %s", response["cluster"]["version"])  # to log present version
+    logger.info("cluster version before upgrade %s", response["cluster"]["version"])  # to log present version
     d["cluster_prev_version"] = response["cluster"]["version"]
     args = (
         "~/eksctl upgrade cluster --name=" + clust_name + " --version " + version + " --approve"
     )  # upgrades cluster to one version above
     output = subprocess.call(args, shell=True)
     response = bclient.describe_cluster(name=clust_name)
-    logger.info("cluster verion after upgrade %s", response["cluster"]["version"])  # to log updated/new version
+    logger.info("cluster version after upgrade %s", response["cluster"]["version"])  # to log updated/new version
     d["cluster_updated_version:"] = response["cluster"]["version"]
 
     end = time.time()
@@ -91,7 +91,7 @@ def upgrade_cluster(region, clust_name, d, bclient, version):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# upgrades addon availble in given cluster
+# upgrades addon available in given cluster
 def add_on_upgrade(region, clust_name, d, v1):
     logger.info("addon upgrade started")
     start_time = time.ctime()
@@ -118,9 +118,9 @@ def add_on_upgrade(region, clust_name, d, v1):
         try:
             response = botoclient("us-west-2").describe_cluster(name=clust_name)
             if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-                logger.info("Success response recieved for describing cluster: %s", clust_name)
+                logger.info("Success response received for describing cluster: %s", clust_name)
                 oidc = response["cluster"]["identity"]["oidc"]["issuer"]
-                logger.info("OIDC output recieved %s for Cluster Name: %s", oidc, clust_name)
+                logger.info("OIDC output received %s for Cluster Name: %s", oidc, clust_name)
                 response = botoclient("us-west-2").describe_addon(clusterName=clust_name, addonName="vpc-cni")
 
                 if response["addon"]["addonVersion"] != vpc_version:
@@ -143,11 +143,11 @@ def add_on_upgrade(region, clust_name, d, v1):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# retrives the self managed nodegroup name
+# retrieves the self managed nodegroup name
 def get_old_smg_node_groups(region, clust_name, bclient):
     args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
     output = subprocess.check_output(args, shell=True)
-    output = json.loads((output))  # to extract all nodegroups present in the cluster
+    output = json.loads(output)  # to extract all nodegroups present in the cluster
     old_smg = []
     response = bclient.list_nodegroups(
         clusterName=clust_name,
@@ -169,7 +169,7 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
     old_smg = get_old_smg_node_groups(region, clust_name, bclient)  # extract SELF MANAGED NODEGROUPS
     args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
     output = subprocess.check_output(args, shell=True)
-    output = json.loads((output))
+    output = json.loads(output)
     response = bclient.list_nodegroups(
         clusterName=clust_name,
     )
@@ -178,7 +178,7 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
     for i in output:
         if i["Name"] not in ls:
             # to log PRESENT - SELF MANAGED NODEGROUP IMAGE and ID
-            logger.info("%s image-id befrore update %s", i["Name"], i["ImageID"])
+            logger.info("%s image-id before update %s", i["Name"], i["ImageID"])
             d["un_managed_ndgrp_before_update"][i["Name"]] = i["ImageID"]
 
     if old_smg:
@@ -206,7 +206,7 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
     time.sleep(240)
     args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
     output = subprocess.check_output(args, shell=True)
-    output = json.loads((output))
+    output = json.loads(output)
     response = bclient.list_nodegroups(
         clusterName=clust_name,
     )
@@ -273,7 +273,7 @@ def update_managed_nodegroup(region, clust_name, version, d, bclient):
     start_time = time.ctime()
     start = time.time()
     logger.info(
-        "Updation of managed nodegroups Started At %s against cluster: %s in region: %s",
+        "Update of managed nodegroups Started At %s against cluster: %s in region: %s",
         str(start_time),
         clust_name,
         region,
@@ -283,7 +283,7 @@ def update_managed_nodegroup(region, clust_name, version, d, bclient):
         clusterName=clust_name,
     )
     d["managed_nodegroup_after_update"] = {}
-    if response["nodegroups"] != []:  # to verify if MANAGED NODEGROUP exists
+    if response["nodegroups"]:  # to verify if MANAGED NODEGROUP exists
         for i in response["nodegroups"]:
             response = bclient.describe_nodegroup(clusterName=clust_name, nodegroupName=i)
             logger.info("nodegroup %s version before upgrade is %s", i, response["nodegroup"]["version"])
@@ -301,7 +301,7 @@ def update_managed_nodegroup(region, clust_name, version, d, bclient):
     end = time.time()
     hours, rem = divmod(end - start, 3600)
     minutes, seconds = divmod(rem, 60)
-    logger.info("The time Taken For the Updation of managed nodegroups %s:%s:%s", int(hours), int(minutes), seconds)
+    logger.info("The time Taken For the Update of managed nodegroups %s:%s:%s", int(hours), int(minutes), seconds)
     return d
 
 

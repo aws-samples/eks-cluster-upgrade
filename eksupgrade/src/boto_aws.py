@@ -24,7 +24,7 @@ def status_of_cluster(cluster_name: str, region: str) -> List[str]:
 
 
 def is_cluster_exists(cluster_name: str, region: str) -> str:
-    """Check wether the cluster exists or not."""
+    """Check whether the cluster exists or not."""
     try:
         response = status_of_cluster(cluster_name, region)
         return response[0]
@@ -244,7 +244,7 @@ def get_num_of_instances(asg_name: str, exclude_ids: List[str], region: str) -> 
 def get_asgs(cluster_name: str, region: str) -> List[str]:
     """Get a list of ASGs by cluster and region.
 
-    We get a list of Asg's (auto scaling groups) Which will mach our format
+    We get a list of ASGs (auto scaling groups) which will mach our format
     "kubernetes.io/cluster/{cluster_name}"
     and returns an empty list if none are found
 
@@ -264,7 +264,7 @@ def get_asgs(cluster_name: str, region: str) -> List[str]:
     return matching_names
 
 
-def old_lt_secanarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
+def old_lt_scenarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
     """Get the old launch template based on launch template name and version 1!=2."""
     lt_name = inst["LaunchTemplate"]["LaunchTemplateName"]
     lt_version = int(inst["LaunchTemplate"]["Version"])
@@ -296,11 +296,11 @@ def get_old_lt(asg_name: str, region: str) -> List[str]:
         logger.error("Old Launch Template not found! ASG: %s - Region: %s", asg_name, region)
         return []
 
-    # checking wethether there are instances with 1!=2 mismatch template version
+    # checking whether there are instances with 1!=2 mismatch template version
     old_lt_instance_ids = [
         instance["InstanceId"]
         for instance in response["AutoScalingGroups"][0]["Instances"]
-        if old_lt_secanarios(instance, asg_lt_name, int(instance["LaunchTemplate"]["Version"]))
+        if old_lt_scenarios(instance, asg_lt_name, int(instance["LaunchTemplate"]["Version"]))
     ]
     if not old_lt_instance_ids:
         return []
@@ -389,13 +389,13 @@ def add_autoscaling(asg_name: str, img_id: str, region: str) -> Dict[str, Any]:
 
 
 def get_outdated_asg(asg_name: str, latest_img: str, region: str) -> bool:
-    """Get the outdate autoscaling group."""
+    """Get the outdated autoscaling group."""
     asg_client = boto3.client("autoscaling", region_name=region)
     ec2_client = boto3.client("ec2", region_name=region)
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     instance_ids = [instance["InstanceId"] for instance in response["AutoScalingGroups"][0]["Instances"]]
     old_ami_inst = []
-    # filetering old instance where the logic is used to check wether we should add new launch configuration or not
+    # filtering old instance where the logic is used to check whether we should add new launch configuration or not
     inst_response = ec2_client.describe_instances(InstanceIds=instance_ids)
     for reservation in inst_response["Reservations"]:
         for instance in reservation["Instances"]:

@@ -62,7 +62,7 @@ def pre_flight_checks(
 
         if errors:
             logger.error(
-                "%sflight unsuccessful because of the following errors: %s", "Pre" if preflight else "Post", errors
+                "%s flight unsuccessful because of the following errors: %s", "Pre" if preflight else "Post", errors
             )
     except Exception as error:
         logger.error("IAM role verification failed - Error: %s", error)
@@ -106,25 +106,25 @@ def get_cluster_version(
                 update_version
             ) < 1.25:
                 logger.info(
-                    "Cluster with verison %s can be updated to target version %s",
+                    "Cluster with version %s can be updated to target version %s",
                     cluster_details["cluster"]["version"],
                     update_version,
                 )
                 customer_report[
                     "cluster upgradation"
-                ] = f"Cluster with verison {cluster_details['cluster']['version']} can be updated to target version {update_version}"
+                ] = f"Cluster with version {cluster_details['cluster']['version']} can be updated to target version {update_version}"
             else:
                 customer_report[
                     "cluster upgradation"
-                ] = f"Cluster with verison {cluster_details['cluster']['version']} cannot be updated to target version {update_version}"
+                ] = f"Cluster with version {cluster_details['cluster']['version']} cannot be updated to target version {update_version}"
                 logger.info(
-                    "Cluster with verison %s cannot be updated to target version %s",
+                    "Cluster with version %s cannot be updated to target version %s",
                     cluster_details["cluster"]["version"],
                     update_version,
                 )
                 report["preflight_status"] = False
                 errors.append(
-                    f"Cluster with verison {cluster_details['cluster']['version']} cannot be updated to target version {update_version}"
+                    f"Cluster with version {cluster_details['cluster']['version']} cannot be updated to target version {update_version}"
                 )
                 return
         cmk_key_check(errors, cluster_name, region, cluster_details, report, customer_report)
@@ -141,19 +141,19 @@ def get_cluster_version(
         cluster_auto_scaler(errors, cluster_name, region, report, customer_report)
 
         if report["cluster"]["version"] != "1.21" and update_version:
-            depricated_api_check(errors, cluster_name, region, report, customer_report, update_version)
+            deprecated_api_check(errors, cluster_name, region, report, customer_report, update_version)
 
         if email:
             logger.info("Delivering report via Email...")
             send_email(preflight, cluster_name, region, report, customer_report, email)
     except Exception as error:
-        errors.append(f"Some error occured during preflight check process {error}")
+        errors.append(f"Some error occurred during preflight check process {error}")
         customer_report["cluster version"] = "Some error occured during preflight check process"
-        logger.error("Some error occured during preflight check process - Error: %s", error)
+        logger.error("Some error occurred during preflight check process - Error: %s", error)
         report["preflight_status"] = False
 
 
-# Gather Subnet Utilization fro the current cluster
+# Gather Subnet Utilization from the current cluster
 def subnet_details(
     errors: List[str], cluster_name: str, region: str, report: Dict[str, Any], customer_report: Dict[str, Any]
 ) -> None:
@@ -192,8 +192,8 @@ def subnet_details(
             customer_report["subnet"].append("Available IP for Subnet verified")
             logger.info("Available IPs for Subnet verified")
     except Exception as error:
-        errors.append(f"Some error occured while fetching subnet details {error}")
-        logger.error("Some error occured while fetching subnet details %s", error)
+        errors.append(f"Some error occurred while fetching subnet details {error}")
+        logger.error("Some error occurred while fetching subnet details %s", error)
         report["preflight_status"] = False
 
 
@@ -233,8 +233,8 @@ def cluster_roles(
                     not_available.append(role)
                     logger.warning("Unable to find %s", role)
             except Exception as error:
-                customer_report["cluster role"].append(f"Some error occured while checking role for {role}")
-                logger.error("Some error occured while checking role for %s - Error: %s", role, error)
+                customer_report["cluster role"].append(f"Some error occurred while checking role for {role}")
+                logger.error("Some error occurred while checking role for %s - Error: %s", role, error)
 
         if report["cluster"]["version"] in cluster_roles_list.keys():
             for role in cluster_roles_list[report["cluster"]["version"]].keys():
@@ -257,15 +257,17 @@ def cluster_roles(
                 customer_report["cluster role"].append(f"{_item} role is not present in the cluster")
                 logger.info("%s role is not present in the cluster", _item)
         else:
-            customer_report["cluster role"].append("All cluster role needed sucessfully verified")
+            customer_report["cluster role"].append("All cluster role needed successfully verified")
             for _item in available:
                 customer_report["cluster role"].append(f"{_item} role is present in cluster")
                 logger.info("%s role is present in the cluster", _item)
-            logger.info("All cluster role needed sucessfully verified")
+            logger.info("All cluster role needed successfully verified")
     except Exception as error:
-        errors.append(f"Some error occured while checking the cluster roles available {error}")
-        customer_report["cluster role"].append(f"Some error occured while checking the cluster roles available {error}")
-        logger.error("Some error occured while checking the cluster roles available - Error: %s", error)
+        errors.append(f"Some error occurred while checking the cluster roles available {error}")
+        customer_report["cluster role"].append(
+            f"Some error occurred while checking the cluster roles available {error}"
+        )
+        logger.error("Some error occurred while checking the cluster roles available - Error: %s", error)
         report["preflight_status"] = False
 
 
@@ -295,9 +297,9 @@ def pod_security_policies(
                 errors.append("Pod Security Policy with eks.privileged role doesnt exists.")
                 logger.info("Pod Security Policy with eks.privileged role doesnt exists.")
     except Exception as error:
-        errors.append(f"Some error occured while checking for the policy security policies {error}")
-        customer_report["pod security policy"] = "Some error occured while checking for the policy security policies"
-        logger.error("Some error occured while checking for the policy security policies %s", error)
+        errors.append(f"Some error occurred while checking for the policy security policies {error}")
+        customer_report["pod security policy"] = "Some error occurred while checking for the policy security policies"
+        logger.error("Some error occurred while checking for the policy security policies %s", error)
         report["preflight_status"] = False
 
 
@@ -310,7 +312,7 @@ def addon_version(
     customer_report: Dict[str, Any],
     pass_vpc: bool,
 ) -> None:
-    """Check for compatiblity between addon and control plane versions."""
+    """Check for compatibility between addon and control plane versions."""
     loading_config(cluster_name, region)
 
     yaml_data: Dict[str, Any] = {}
@@ -489,13 +491,13 @@ def addon_version(
         report["addons"] = addons
         customer_report["addons_version"] = addons
     except Exception as error:
-        errors.append(f"Some error occured while checking the addon version {error}")
-        logger.error("Some error occured while checking the addon version - Error: %s", error)
+        errors.append(f"Some error occurred while checking the addon version {error}")
+        logger.error("Some error occurred while checking the addon version - Error: %s", error)
         report["preflight_status"] = False
 
 
 def check_pods_running(addon: str, report: Dict[str, Any], errors: List[str], namespace: str = "kube-system") -> None:
-    """Check whether or not the addon pod is in a running state."""
+    """Check whether the addon pod is in a running state."""
     try:
         core_v1_api = client.CoreV1Api()
         count = 0
@@ -516,8 +518,8 @@ def check_pods_running(addon: str, report: Dict[str, Any], errors: List[str], na
             report["preflight_status"] = False
             errors.append(f"{addon} pod is not present in the cluster")
     except Exception as error:
-        errors.append(f"Some error occured while checking for addon pods to be running {error}")
-        logger.info("Some error occured while checking for addon pods to be running - Error: %s", error)
+        errors.append(f"Some error occurred while checking for addon pods to be running {error}")
+        logger.info("Some error occurred while checking for addon pods to be running - Error: %s", error)
         report["preflight_status"] = False
 
 
@@ -758,9 +760,9 @@ def pod_disruption_budget(
             report["pdb"]["pods"] = pods_and_nodes
             logger.info(pods_and_nodes)
     except Exception as error:
-        errors.append(f"Error ocurred while checking for pod disruption budget {error}")
-        customer_report["pod disruption budget"] = "Error ocurred while checking for pod disruption budget"
-        logger.error("Error ocurred while checking for pod disruption budget - Error: %s", error)
+        errors.append(f"Error occurred while checking for pod disruption budget {error}")
+        customer_report["pod disruption budget"] = "Error occurred while checking for pod disruption budget"
+        logger.error("Error occurred while checking for pod disruption budget - Error: %s", error)
         report["preflight_status"] = False
 
 
@@ -801,9 +803,9 @@ def cluster_auto_scaler(
         customer_report["cluster autoscaler"] = "Cluster Autoscaler doesn't exist"
         logger.info("Cluster Autoscaler doesn't exist")
     except Exception as error:
-        errors.append(f"Error occured while checking for the cluster autoscaler {error}")
-        customer_report["cluster autoscaler"] = f"Error occured while checking for the cluster autoscaler {error}"
-        logger.error("Error occured while checking for the cluster autoscaler - Error: %s", error)
+        errors.append(f"Error occurred while checking for the cluster autoscaler {error}")
+        customer_report["cluster autoscaler"] = f"Error occurred while checking for the cluster autoscaler {error}"
+        logger.error("Error occurred while checking for the cluster autoscaler - Error: %s", error)
         report["preflight_status"] = False
 
 
@@ -821,59 +823,59 @@ def horizontal_auto_scaler(errors, cluster_name, region, report, customer_report
             logger.info("Horizontal Pod Auto scaler exists in cluster")
             report["horizontal_autoscaler"] = ret.items[0]
     except Exception as e:
-        errors.append(f"Error occured while checking for horizontal autoscaler {e}")
-        logger.error("Error occured while checking for horizontal autoscaler - Error: %s", e)
-        customer_report["horizontal auto scaler"] = "Error occured while checking for horizontal autoscaler"
+        errors.append(f"Error occurred while checking for horizontal autoscaler {e}")
+        logger.error("Error occurred while checking for horizontal autoscaler - Error: %s", e)
+        customer_report["horizontal auto scaler"] = "Error occurred while checking for horizontal autoscaler"
         report["preflight_status"] = False
 
 
-def depricated_api_check(errors, cluster_name, region, report, customer_report, update_version):
+def deprecated_api_check(errors, cluster_name, region, report, customer_report, update_version):
     loading_config(cluster_name, region)
-    with open("eksupgrade/src/S3Files/depricatedApi", "r", encoding="utf-8") as f:
-        depricated_api = json.load(f)
+    with open("eksupgrade/src/S3Files/deprecatedApi", "r", encoding="utf-8") as f:
+        deprecated_api = json.load(f)
 
-    logger.info("Checking for any depricated API being used....")
-    customer_report["depricated Api"] = []
+    logger.info("Checking for any deprecated API being used....")
+    customer_report["deprecated Api"] = []
     try:
-        dict = depricated_api[update_version]
+        dict = deprecated_api[update_version]
         for key in dict.keys():
             if key == "all-resources":
                 for k in dict[key].keys():
                     if dict[key][k] == "permanent":
-                        customer_report["depricated Api"].append(f"{k} API has been depricated permanently ")
-                        logger.info("%s API has been depricated permanently", k)
+                        customer_report["deprecated Api"].append(f"{k} API has been deprecated permanently ")
+                        logger.info("%s API has been deprecated permanently", k)
                     else:
-                        customer_report["depricated Api"].append(
-                            f"{k} API has been depricated use {dict[key][k]} instead"
+                        customer_report["deprecated Api"].append(
+                            f"{k} API has been deprecated use {dict[key][k]} instead"
                         )
-                        logger.info("%s API has been depricated use %s instead", k, dict[key][k])
+                        logger.info("%s API has been deprecated use %s instead", k, dict[key][k])
             else:
-                depricated_resource = []
+                deprecated_resource = []
                 new_resource = []
                 v1 = eval(key)
                 res = v1.get_api_resources()
                 for resource in res.resources:
-                    depricated_resource.append(resource.name)
+                    deprecated_resource.append(resource.name)
                 for k in dict[key].keys():
                     v2 = eval(k)
                     ret = v2.get_api_resources()
                     for resource in ret.resources:
                         new_resource.append(resource.name)
-                    if dict[key][k] in depricated_resource and dict[key][k] not in new_resource:
-                        customer_report["depricated Api"].append(
-                            f"Resource {dict[key][k]} is present in depricated API {key} to be shifted to {k}"
+                    if dict[key][k] in deprecated_resource and dict[key][k] not in new_resource:
+                        customer_report["deprecated Api"].append(
+                            f"Resource {dict[key][k]} is present in deprecated API {key} to be shifted to {k}"
                         )
                         errors.append(
-                            f"Resource {dict[key][k]} is present in depricated API {key} to be shifted to {k}"
+                            f"Resource {dict[key][k]} is present in deprecated API {key} to be shifted to {k}"
                         )
                         logger.info(
-                            "Resource %s is present in depricated API %s to be shifted to %s", dict[key][k], key, k
+                            "Resource %s is present in deprecated API %s to be shifted to %s", dict[key][k], key, k
                         )
-        logger.info("Depricated Api check completed")
+        logger.info("Deprecated Api check completed")
     except Exception as e:
-        errors.append(f"Depricated API check failed {e}")
-        customer_report["depricated Api"].append("Depricated API check failed")
-        logger.error("Depricated API check failed - Error: %s", e)
+        errors.append(f"Deprecated API check failed {e}")
+        customer_report["deprecated Api"].append("Deprecated API check failed")
+        logger.error("Deprecated API check failed - Error: %s", e)
         report["preflight_status"] = False
 
 
@@ -939,9 +941,9 @@ def security_group_check(errors, cluster_name, region, cluster, report, customer
                     errors.append(f"The security group with id {s} is not present")
                     logger.error("The security group with id %s is not present", s)
     except Exception as e:
-        errors.append(f"Error retireving security group of cluster {e}")
-        customer_report["security group"] = f"Error retireving security group of cluster {e}"
-        logger.info("Error retireving security group of cluster - Error: %s", e)
+        errors.append(f"Error retrieving security group of cluster {e}")
+        customer_report["security group"] = f"Error retrieving security group of cluster {e}"
+        logger.info("Error retrieving security group of cluster - Error: %s", e)
         report["preflight_status"] = False
 
 
@@ -1104,9 +1106,9 @@ def nodegroup_customami(errors, cluster_name, region, report, customer_report, u
                         final_dict["managed"][autoscale_group_name]["instances"] = instances
         return final_dict
     except Exception as e:
-        errors.append(f"Error ocurred while checking node group details {e}")
-        logger.error("Error ocurred while checking node group details - Error: %s", e)
-        customer_report["node group details"] = "Error ocurred while checking node group details"
+        errors.append(f"Error occurred while checking node group details {e}")
+        logger.error("Error occurred while checking node group details - Error: %s", e)
+        customer_report["node group details"] = "Error occurred while checking node group details"
         report["preflight_status"] = False
 
 
@@ -1180,9 +1182,9 @@ def send_email(preflight, cluster_name, region, report, customer_report, email):
             htmlStart = htmlStart + "<li>" + str(s) + "</li>"
         htmlStart = htmlStart + "</ul></td></tr>"
         htmlStart = htmlStart + "<tr><td>cluster version</td><td>" + customer_report["cluster version"] + "</td></tr>"
-        if "depricated Api" in customer_report.keys():
+        if "deprecated Api" in customer_report.keys():
             htmlStart = (
-                htmlStart + "<tr><td>depricated Api</td><td>" + str(customer_report["depricated Api"]) + "</td></tr>"
+                htmlStart + "<tr><td>deprecated Api</td><td>" + str(customer_report["deprecated Api"]) + "</td></tr>"
             )
         htmlStart = (
             htmlStart

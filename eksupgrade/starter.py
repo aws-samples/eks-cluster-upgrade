@@ -165,7 +165,7 @@ def main(args) -> None:
             logger.error("Pre-flight check for cluster %s failed!", cluster_name)
             sys.exit()
         else:
-            logger.info("Pre-flight check for the cluster %s succeded!", cluster_name)
+            logger.info("Pre-flight check for the cluster %s succeeded!", cluster_name)
         if preflight:
             sys.exit()
 
@@ -180,7 +180,7 @@ def main(args) -> None:
         else:
             raise Exception("The cluster is not active")
 
-        # Checking Cluster is Active or Not Befor Making an Update
+        # Checking Cluster is Active or Not Before Making an Update
         start = time.time()
         if is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE":
             # if eksctl flag is enabled.
@@ -212,9 +212,9 @@ def main(args) -> None:
         finding_manged = get_asg_node_groups(cluster_name, region)
         logger.info("The Manged Node Groups Found are %s", ",".join(finding_manged))
         asg_list = get_asgs(cluster_name, region)
-        logger.info("The Asg's Found Are %s", ",".join(asg_list))
+        logger.info("The ASGs Found Are %s", ",".join(asg_list))
 
-        # removing selfmanged from manged so that we dont update them again
+        # removing self-managed from managed so that we don't update them again
         asg_list_self_managed = list(set(asg_list) - set(finding_manged))
 
         # addons update

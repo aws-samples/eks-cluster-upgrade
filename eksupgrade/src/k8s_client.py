@@ -79,7 +79,7 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
     )
     base64_url = base64.urlsafe_b64encode(signed_url.encode("utf-8")).decode("utf-8")
 
-    # remove any base64 encoding padding and returing the kubernetes token
+    # remove any base64 encoding padding and returning the kubernetes token
     return "k8s-aws-v1." + re.sub(r"=*", "", base64_url)
 
 
@@ -93,7 +93,7 @@ def loading_config(cluster_name, regionName) -> str:
     configs.debug = False
     configs.api_key = {"authorization": "Bearer " + get_bearer_token(cluster_name, regionName)}
     client.Configuration.set_default(configs)
-    return "Initialiazed"
+    return "Initialized"
 
 
 def unschedule_old_nodes(cluster_name: str, node_name: str, region: str) -> None:
@@ -182,7 +182,7 @@ def drain_nodes(cluster_name, node_name, forced, region) -> Optional[str]:
 
 
 def delete_node(cluster_name: str, node_name: str, region: str) -> None:
-    """Delete the node from compute list this doesnt terminate the instance."""
+    """Delete the node from compute list this doesn't terminate the instance."""
     try:
         loading_config(cluster_name, region)
         core_v1_api = client.CoreV1Api()
@@ -529,7 +529,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
 
 
 def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[int, str]]:
-    """Determine whether or not cluster autoscaler is present."""
+    """Determine whether cluster autoscaler is present."""
     loading_config(cluster_name=cluster_name, regionName=region)
     apps_v1_api = client.AppsV1Api()
     res = apps_v1_api.list_deployment_for_all_namespaces()
