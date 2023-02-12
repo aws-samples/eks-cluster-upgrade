@@ -165,7 +165,7 @@ def main(args) -> None:
             logger.error("Pre-flight check for cluster %s failed!", cluster_name)
             sys.exit()
         else:
-            logger.info("Pre-flight check for the cluster %s succeded!", cluster_name)
+            logger.info("Pre-flight check for the cluster %s succeeded!", cluster_name)
         if preflight:
             sys.exit()
 
@@ -180,7 +180,7 @@ def main(args) -> None:
         else:
             raise Exception("The cluster is not active")
 
-        # Checking Cluster is Active or Not Befor Making an Update
+        # Checking Cluster is Active or Not Before Making an Update
         start = time.time()
         if is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE":
             # if eksctl flag is enabled.
@@ -214,7 +214,7 @@ def main(args) -> None:
         asg_list = get_asgs(cluster_name, region)
         logger.info("The Asg's Found Are %s", ",".join(asg_list))
 
-        # removing selfmanged from manged so that we dont update them again
+        # removing selfmanaged from manged so that we don't update them again
         asg_list_self_managed = list(set(asg_list) - set(finding_manged))
 
         # addons update
@@ -298,5 +298,5 @@ def main(args) -> None:
                 )
                 logger.info("Cluster Autoscaler is Enabled Again")
             except Exception as e:
-                logger.error("Autoenable failed and must be done manually! Error: %s", e)
+                logger.error("Auto-enable failed and must be done manually! Error: %s", e)
         logger.error("Exception encountered in main method - Error: %s", e)

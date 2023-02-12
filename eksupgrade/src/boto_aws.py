@@ -389,13 +389,13 @@ def add_autoscaling(asg_name: str, img_id: str, region: str) -> Dict[str, Any]:
 
 
 def get_outdated_asg(asg_name: str, latest_img: str, region: str) -> bool:
-    """Get the outdate autoscaling group."""
+    """Get the outdated autoscaling group."""
     asg_client = boto3.client("autoscaling", region_name=region)
     ec2_client = boto3.client("ec2", region_name=region)
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     instance_ids = [instance["InstanceId"] for instance in response["AutoScalingGroups"][0]["Instances"]]
     old_ami_inst = []
-    # filetering old instance where the logic is used to check wether we should add new launch configuration or not
+    # filtering old instance where the logic is used to check whether we should add new launch configuration or not
     inst_response = ec2_client.describe_instances(InstanceIds=instance_ids)
     for reservation in inst_response["Reservations"]:
         for instance in reservation["Instances"]:

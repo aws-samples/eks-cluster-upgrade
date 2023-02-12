@@ -1,4 +1,4 @@
-"""Define the EKSCTL CLI specifici workflows."""
+"""Define the EKSCTL CLI specific workflows."""
 from __future__ import annotations
 
 import base64
@@ -48,7 +48,7 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
 
     base64_url = base64.urlsafe_b64encode(signed_url.encode("utf-8")).decode("utf-8")
 
-    # remove any base64 encoding padding and returing the kubernets token
+    # remove any base64 encoding padding and returning the kubernetes token
     return "k8s-aws-v1." + re.sub(r"=*", "", base64_url)
 
 
@@ -91,7 +91,7 @@ def upgrade_cluster(region, clust_name, d, bclient, version):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# upgrades addon availble in given cluster
+# upgrades addon available in given cluster
 def add_on_upgrade(region, clust_name, d, v1):
     logger.info("addon upgrade started")
     start_time = time.ctime()
@@ -143,7 +143,7 @@ def add_on_upgrade(region, clust_name, d, v1):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# retrives the self managed nodegroup name
+# retrieves the self managed nodegroup name
 def get_old_smg_node_groups(region, clust_name, bclient):
     args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
     output = subprocess.check_output(args, shell=True)
@@ -206,7 +206,7 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
     time.sleep(240)
     args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
     output = subprocess.check_output(args, shell=True)
-    output = json.loads((output))
+    output = json.loads(output)
     response = bclient.list_nodegroups(
         clusterName=clust_name,
     )
