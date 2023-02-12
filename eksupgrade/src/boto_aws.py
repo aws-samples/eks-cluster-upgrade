@@ -24,7 +24,7 @@ def status_of_cluster(cluster_name: str, region: str) -> List[str]:
 
 
 def is_cluster_exists(cluster_name: str, region: str) -> str:
-    """Check wether the cluster exists or not."""
+    """Check whether the cluster exists or not."""
     try:
         response = status_of_cluster(cluster_name, region)
         return response[0]
@@ -244,7 +244,7 @@ def get_num_of_instances(asg_name: str, exclude_ids: List[str], region: str) -> 
 def get_asgs(cluster_name: str, region: str) -> List[str]:
     """Get a list of ASGs by cluster and region.
 
-    We get a list of Asg's (auto scaling groups) Which will mach our format
+    We get a list of Asg's (auto scaling groups) which will mach our format
     "kubernetes.io/cluster/{cluster_name}"
     and returns an empty list if none are found
 
@@ -264,7 +264,7 @@ def get_asgs(cluster_name: str, region: str) -> List[str]:
     return matching_names
 
 
-def old_lt_secanarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
+def old_lt_scenarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
     """Get the old launch template based on launch template name and version 1!=2."""
     lt_name = inst["LaunchTemplate"]["LaunchTemplateName"]
     lt_version = int(inst["LaunchTemplate"]["Version"])
@@ -296,11 +296,11 @@ def get_old_lt(asg_name: str, region: str) -> List[str]:
         logger.error("Old Launch Template not found! ASG: %s - Region: %s", asg_name, region)
         return []
 
-    # checking wethether there are instances with 1!=2 mismatch template version
+    # checking whether there are instances with 1!=2 mismatch template version
     old_lt_instance_ids = [
         instance["InstanceId"]
         for instance in response["AutoScalingGroups"][0]["Instances"]
-        if old_lt_secanarios(instance, asg_lt_name, int(instance["LaunchTemplate"]["Version"]))
+        if old_lt_scenarios(instance, asg_lt_name, int(instance["LaunchTemplate"]["Version"]))
     ]
     if not old_lt_instance_ids:
         return []

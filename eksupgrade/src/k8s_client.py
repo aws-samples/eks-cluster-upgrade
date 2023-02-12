@@ -93,7 +93,7 @@ def loading_config(cluster_name, regionName) -> str:
     configs.debug = False
     configs.api_key = {"authorization": "Bearer " + get_bearer_token(cluster_name, regionName)}
     client.Configuration.set_default(configs)
-    return "Initialiazed"
+    return "Initialized"
 
 
 def unschedule_old_nodes(cluster_name: str, node_name: str, region: str) -> None:

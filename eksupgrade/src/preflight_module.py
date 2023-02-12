@@ -141,7 +141,7 @@ def get_cluster_version(
         cluster_auto_scaler(errors, cluster_name, region, report, customer_report)
 
         if report["cluster"]["version"] != "1.21" and update_version:
-            depricated_api_check(errors, cluster_name, region, report, customer_report, update_version)
+            deprecated_api_check(errors, cluster_name, region, report, customer_report, update_version)
 
         if email:
             logger.info("Delivering report via Email...")
@@ -192,8 +192,8 @@ def subnet_details(
             customer_report["subnet"].append("Available IP for Subnet verified")
             logger.info("Available IPs for Subnet verified")
     except Exception as error:
-        errors.append(f"Some error occured while fetching subnet details {error}")
-        logger.error("Some error occured while fetching subnet details %s", error)
+        errors.append(f"Some error occurred while fetching subnet details {error}")
+        logger.error("Some error occurred while fetching subnet details %s", error)
         report["preflight_status"] = False
 
 
@@ -298,7 +298,7 @@ def pod_security_policies(
                 logger.info("Pod Security Policy with eks.privileged role doesnt exists.")
     except Exception as error:
         errors.append(f"Some error occurred while checking for the policy security policies {error}")
-        customer_report["pod security policy"] = "Some error occured while checking for the policy security policies"
+        customer_report["pod security policy"] = "Some error occurred while checking for the policy security policies"
         logger.error("Some error occurred while checking for the policy security policies %s", error)
         report["preflight_status"] = False
 
@@ -491,8 +491,8 @@ def addon_version(
         report["addons"] = addons
         customer_report["addons_version"] = addons
     except Exception as error:
-        errors.append(f"Some error occured while checking the addon version {error}")
-        logger.error("Some error occured while checking the addon version - Error: %s", error)
+        errors.append(f"Some error occurred while checking the addon version {error}")
+        logger.error("Some error occurred while checking the addon version - Error: %s", error)
         report["preflight_status"] = False
 
 
@@ -823,59 +823,59 @@ def horizontal_auto_scaler(errors, cluster_name, region, report, customer_report
             logger.info("Horizontal Pod Auto scaler exists in cluster")
             report["horizontal_autoscaler"] = ret.items[0]
     except Exception as e:
-        errors.append(f"Error occured while checking for horizontal autoscaler {e}")
-        logger.error("Error occured while checking for horizontal autoscaler - Error: %s", e)
-        customer_report["horizontal auto scaler"] = "Error occured while checking for horizontal autoscaler"
+        errors.append(f"Error occurred while checking for horizontal autoscaler {e}")
+        logger.error("Error occurred while checking for horizontal autoscaler - Error: %s", e)
+        customer_report["horizontal auto scaler"] = "Error occurred while checking for horizontal autoscaler"
         report["preflight_status"] = False
 
 
-def depricated_api_check(errors, cluster_name, region, report, customer_report, update_version):
+def deprecated_api_check(errors, cluster_name, region, report, customer_report, update_version):
     loading_config(cluster_name, region)
-    with open("eksupgrade/src/S3Files/depricatedApi", "r", encoding="utf-8") as f:
-        depricated_api = json.load(f)
+    with open("eksupgrade/src/S3Files/deprecatedApi", "r", encoding="utf-8") as f:
+        deprecated_api = json.load(f)
 
-    logger.info("Checking for any depricated API being used....")
-    customer_report["depricated Api"] = []
+    logger.info("Checking for any deprecated API being used....")
+    customer_report["deprecated Api"] = []
     try:
-        dict = depricated_api[update_version]
+        dict = deprecated_api[update_version]
         for key in dict.keys():
             if key == "all-resources":
                 for k in dict[key].keys():
                     if dict[key][k] == "permanent":
-                        customer_report["depricated Api"].append(f"{k} API has been depricated permanently ")
-                        logger.info("%s API has been depricated permanently", k)
+                        customer_report["deprecated Api"].append(f"{k} API has been deprecated permanently ")
+                        logger.info("%s API has been deprecated permanently", k)
                     else:
-                        customer_report["depricated Api"].append(
-                            f"{k} API has been depricated use {dict[key][k]} instead"
+                        customer_report["deprecated Api"].append(
+                            f"{k} API has been deprecated use {dict[key][k]} instead"
                         )
-                        logger.info("%s API has been depricated use %s instead", k, dict[key][k])
+                        logger.info("%s API has been deprecated use %s instead", k, dict[key][k])
             else:
-                depricated_resource = []
+                deprecated_resource = []
                 new_resource = []
                 v1 = eval(key)
                 res = v1.get_api_resources()
                 for resource in res.resources:
-                    depricated_resource.append(resource.name)
+                    deprecated_resource.append(resource.name)
                 for k in dict[key].keys():
                     v2 = eval(k)
                     ret = v2.get_api_resources()
                     for resource in ret.resources:
                         new_resource.append(resource.name)
-                    if dict[key][k] in depricated_resource and dict[key][k] not in new_resource:
-                        customer_report["depricated Api"].append(
-                            f"Resource {dict[key][k]} is present in depricated API {key} to be shifted to {k}"
+                    if dict[key][k] in deprecated_resource and dict[key][k] not in new_resource:
+                        customer_report["deprecated Api"].append(
+                            f"Resource {dict[key][k]} is present in deprecated API {key} to be shifted to {k}"
                         )
                         errors.append(
-                            f"Resource {dict[key][k]} is present in depricated API {key} to be shifted to {k}"
+                            f"Resource {dict[key][k]} is present in deprecated API {key} to be shifted to {k}"
                         )
                         logger.info(
-                            "Resource %s is present in depricated API %s to be shifted to %s", dict[key][k], key, k
+                            "Resource %s is present in deprecated API %s to be shifted to %s", dict[key][k], key, k
                         )
-        logger.info("Depricated Api check completed")
+        logger.info("Deprecated Api check completed")
     except Exception as e:
-        errors.append(f"Depricated API check failed {e}")
-        customer_report["depricated Api"].append("Depricated API check failed")
-        logger.error("Depricated API check failed - Error: %s", e)
+        errors.append(f"Deprecated API check failed {e}")
+        customer_report["deprecated Api"].append("Deprecated API check failed")
+        logger.error("Deprecated API check failed - Error: %s", e)
         report["preflight_status"] = False
 
 
@@ -941,9 +941,9 @@ def security_group_check(errors, cluster_name, region, cluster, report, customer
                     errors.append(f"The security group with id {s} is not present")
                     logger.error("The security group with id %s is not present", s)
     except Exception as e:
-        errors.append(f"Error retireving security group of cluster {e}")
-        customer_report["security group"] = f"Error retireving security group of cluster {e}"
-        logger.info("Error retireving security group of cluster - Error: %s", e)
+        errors.append(f"Error retrieving security group of cluster {e}")
+        customer_report["security group"] = f"Error retrieving security group of cluster {e}"
+        logger.info("Error retrieving security group of cluster - Error: %s", e)
         report["preflight_status"] = False
 
 
@@ -1182,9 +1182,9 @@ def send_email(preflight, cluster_name, region, report, customer_report, email):
             htmlStart = htmlStart + "<li>" + str(s) + "</li>"
         htmlStart = htmlStart + "</ul></td></tr>"
         htmlStart = htmlStart + "<tr><td>cluster version</td><td>" + customer_report["cluster version"] + "</td></tr>"
-        if "depricated Api" in customer_report.keys():
+        if "deprecated Api" in customer_report.keys():
             htmlStart = (
-                htmlStart + "<tr><td>depricated Api</td><td>" + str(customer_report["depricated Api"]) + "</td></tr>"
+                htmlStart + "<tr><td>deprecated Api</td><td>" + str(customer_report["deprecated Api"]) + "</td></tr>"
             )
         htmlStart = (
             htmlStart

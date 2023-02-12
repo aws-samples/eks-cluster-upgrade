@@ -41,7 +41,7 @@ def image_type(node_type, inst, region):
         logger.info("Node type: %s is unsupported  - instance: %s", node_type, inst)
         return True
 
-    # decribing image types
+    # describing image types
     images = ec2_client.describe_images(Filters=filters)
     instances_list = []
     for i in images.get("Images"):
@@ -74,7 +74,7 @@ def get_ami_name(cluster_name: str, asg_name: str, region: str):
                     image_type(node_type=node_type, inst=instance_id, region=region),
                 ]
             )
-    # custom logic to check wether the os_type is same if same returning and if not returing the least repeated name
+    # custom logic to check whether the os_type is same if same returning and if not returning the least repeated name
     result = False
     if ans:
         result = all(elem[0] == ans[0][0] for _, elem in enumerate(ans))

@@ -1,4 +1,4 @@
-"""Define the self managed node logic."""
+"""Define the self-managed node logic."""
 from __future__ import annotations
 
 import logging
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def status_of_cluster(cluster_name: str, region: str) -> List[str]:
-    """Get the self Managed Cluster Status."""
+    """Get the self-managed Cluster Status."""
     client = boto3.client("eks", region_name=region)
     response = client.describe_cluster(name=cluster_name)
     status = response["cluster"]["status"]
