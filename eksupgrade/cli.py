@@ -80,9 +80,9 @@ Display the eksupgrade version:
 
 
 def get_eks_supported_regions() -> List[str]:
-    """Retrieve the active regions supporting EKS across aws and us-gov partitions"""
+    """Retrieve the active regions supporting EKS across aws, aws-cn and aws-us-gov partitions"""
     session = boto3.session.Session()
-    partition_list: List[str] = ["aws", "aws-us-gov"]
+    partition_list: List[str] = ["aws", "aws-cn", "aws-us-gov"]
     regions_list: List[str] = []
     for partition in partition_list:
         regions_list.extend(session.get_available_regions("eks", partition))

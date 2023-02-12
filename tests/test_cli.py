@@ -40,5 +40,5 @@ def test_get_eks_supported_regions(boto_session) -> None:
     mock_session = boto_session.return_value
     mock_session.get_available_regions.return_value = ["TEST_REGION"]
 
-    assert get_eks_supported_regions() == ["TEST_REGION", "TEST_REGION"]
-    assert mock_session.get_available_regions.call_count == 2
+    assert get_eks_supported_regions() == ["TEST_REGION", "TEST_REGION", "TEST_REGION"]
+    assert mock_session.get_available_regions.call_count == 3
