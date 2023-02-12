@@ -283,7 +283,7 @@ def update_managed_nodegroup(region, clust_name, version, d, bclient):
         clusterName=clust_name,
     )
     d["managed_nodegroup_after_update"] = {}
-    if response["nodegroups"] != []:  # to verify if MANAGED NODEGROUP exists
+    if response["nodegroups"]:  # to verify if MANAGED NODEGROUP exists
         for i in response["nodegroups"]:
             response = bclient.describe_nodegroup(clusterName=clust_name, nodegroupName=i)
             logger.info("nodegroup %s version before upgrade is %s", i, response["nodegroup"]["version"])

@@ -244,7 +244,7 @@ def get_num_of_instances(asg_name: str, exclude_ids: List[str], region: str) -> 
 def get_asgs(cluster_name: str, region: str) -> List[str]:
     """Get a list of ASGs by cluster and region.
 
-    We get a list of Asg's (auto scaling groups) which will mach our format
+    We get a list of ASGs (auto scaling groups) which will mach our format
     "kubernetes.io/cluster/{cluster_name}"
     and returns an empty list if none are found
 

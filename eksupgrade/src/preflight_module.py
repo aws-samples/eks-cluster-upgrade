@@ -62,7 +62,7 @@ def pre_flight_checks(
 
         if errors:
             logger.error(
-                "%sflight unsuccessful because of the following errors: %s", "Pre" if preflight else "Post", errors
+                "%s flight unsuccessful because of the following errors: %s", "Pre" if preflight else "Post", errors
             )
     except Exception as error:
         logger.error("IAM role verification failed - Error: %s", error)
@@ -803,9 +803,9 @@ def cluster_auto_scaler(
         customer_report["cluster autoscaler"] = "Cluster Autoscaler doesn't exist"
         logger.info("Cluster Autoscaler doesn't exist")
     except Exception as error:
-        errors.append(f"Error occured while checking for the cluster autoscaler {error}")
-        customer_report["cluster autoscaler"] = f"Error occured while checking for the cluster autoscaler {error}"
-        logger.error("Error occured while checking for the cluster autoscaler - Error: %s", error)
+        errors.append(f"Error occurred while checking for the cluster autoscaler {error}")
+        customer_report["cluster autoscaler"] = f"Error occurred while checking for the cluster autoscaler {error}"
+        logger.error("Error occurred while checking for the cluster autoscaler - Error: %s", error)
         report["preflight_status"] = False
 
 
