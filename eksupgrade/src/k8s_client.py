@@ -249,13 +249,13 @@ def addon_status(cluster_name: str, new_pod_name: str, region: str, namespace: s
 
 
 def sort_pods(
-        cluster_name: str,
-        region: str,
-        original_name: str,
-        pod_name: str,
-        old_pods_names: List[str],
-        namespace: str,
-        count: int = 90,
+    cluster_name: str,
+    region: str,
+    original_name: str,
+    pod_name: str,
+    old_pods_names: List[str],
+    namespace: str,
+    count: int = 90,
 ) -> str:
     """Sort the pod results."""
     if not count:

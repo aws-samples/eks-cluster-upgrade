@@ -74,9 +74,7 @@ def upgrade_cluster(clust_name, d, bclient, version):
     response = bclient.describe_cluster(name=clust_name)  # to describe the cluster using boto3
     logger.info("cluster version before upgrade %s", response["cluster"]["version"])  # to log present version
     d["cluster_prev_version"] = response["cluster"]["version"]
-    args = (
-        f"~/eksctl upgrade cluster --name={clust_name} --version {version} --approve"
-    )  # upgrades cluster to one version above
+    args = f"~/eksctl upgrade cluster --name={clust_name} --version {version} --approve"  # upgrades cluster to one version above
     subprocess.call(args, shell=True)
     response = bclient.describe_cluster(name=clust_name)
     logger.info("cluster version after upgrade %s", response["cluster"]["version"])  # to log updated/new version
@@ -123,9 +121,7 @@ def add_on_upgrade(region, clust_name, d):
                 response = botoclient("us-west-2").describe_addon(clusterName=clust_name, addonName="vpc-cni")
 
                 if response["addon"]["addonVersion"] != vpc_version:
-                    args = (
-                        f"~/eksctl update addon --name vpc-cni  --version {vpc_version} --cluster {clust_name}"
-                    )  # to update aws-node
+                    args = f"~/eksctl update addon --name vpc-cni  --version {vpc_version} --cluster {clust_name}"  # to update aws-node
                     subprocess.call(args, shell=True)
         except Exception as e:
             logger.error("Failed to fetch Cluster OIDC value for cluster name: %s - Error: %s", clust_name, e)
