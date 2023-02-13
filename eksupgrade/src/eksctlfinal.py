@@ -35,7 +35,7 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
 
     params = {
         "method": "GET",
-        "url": "https://sts.{}.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15".format(region),
+        "url": f"https://sts.{region}.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15",
         "body": {},
         "headers": {"x-k8s-aws-id": cluster_id},
         "context": {},
@@ -52,22 +52,21 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
     return "k8s-aws-v1." + re.sub(r"=*", "", base64_url)
 
 
-def loading_config(cluster_name: str, regionName: str) -> str:
+def loading_config(cluster_name: str, region: str) -> str:
     """Load the kubeconfig with STS."""
-    eks = boto3.client("eks", region_name=regionName)
+    eks = boto3.client("eks", region_name=region)
     resp = eks.describe_cluster(name=cluster_name)
-    endPoint = resp["cluster"]["endpoint"]
     configs = client.Configuration()
-    configs.host = endPoint
+    configs.host = resp["cluster"]["endpoint"]
     configs.verify_ssl = False
     configs.debug = False
-    configs.api_key = {"authorization": "Bearer " + get_bearer_token(cluster_name, regionName)}
+    configs.api_key = {"authorization": "Bearer " + get_bearer_token(cluster_name, region)}
     client.Configuration.set_default(configs)
-    return "Initialiazed"
+    return "Initialized"
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def upgrade_cluster(region, clust_name, d, bclient, version):
+def upgrade_cluster(clust_name, d, bclient, version):
     start_time = time.ctime()
     start = time.time()
     logger.info("The cluster Upgrade Started At %s", str(start_time))
@@ -75,10 +74,8 @@ def upgrade_cluster(region, clust_name, d, bclient, version):
     response = bclient.describe_cluster(name=clust_name)  # to describe the cluster using boto3
     logger.info("cluster version before upgrade %s", response["cluster"]["version"])  # to log present version
     d["cluster_prev_version"] = response["cluster"]["version"]
-    args = (
-        "~/eksctl upgrade cluster --name=" + clust_name + " --version " + version + " --approve"
-    )  # upgrades cluster to one version above
-    output = subprocess.call(args, shell=True)
+    args = f"~/eksctl upgrade cluster --name={clust_name} --version {version} --approve"  # upgrades cluster to one version above
+    subprocess.call(args, shell=True)
     response = bclient.describe_cluster(name=clust_name)
     logger.info("cluster version after upgrade %s", response["cluster"]["version"])  # to log updated/new version
     d["cluster_updated_version:"] = response["cluster"]["version"]
@@ -92,7 +89,7 @@ def upgrade_cluster(region, clust_name, d, bclient, version):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # upgrades addon available in given cluster
-def add_on_upgrade(region, clust_name, d, v1):
+def add_on_upgrade(region, clust_name, d):
     logger.info("addon upgrade started")
     start_time = time.ctime()
     start = time.time()
@@ -107,10 +104,10 @@ def add_on_upgrade(region, clust_name, d, v1):
         logger.info("%s Current Version = %s", pod.metadata.name, pod.spec.containers[0].image.split(":")[-1])
         d["addonsbeforeupdate"][pod.metadata.name] = pod.spec.containers[0].image.split(":")[-1]
 
-    args = "~/eksctl utils update-kube-proxy --cluster=" + clust_name + " --approve"  # to update kube-proxy
-    output = subprocess.call(args, shell=True)
-    args = "~/eksctl utils update-coredns --cluster=" + clust_name + " --approve"  # to update coredns
-    output = subprocess.call(args, shell=True)
+    args = f"~/eksctl utils update-kube-proxy --cluster={clust_name} --approve"  # to update kube-proxy
+    subprocess.call(args, shell=True)
+    args = f"~/eksctl utils update-coredns --cluster={clust_name} --approve"  # to update coredns
+    subprocess.call(args, shell=True)
 
     output = botoclient("us-west-2").list_addons(clusterName=clust_name)
 
@@ -124,15 +121,13 @@ def add_on_upgrade(region, clust_name, d, v1):
                 response = botoclient("us-west-2").describe_addon(clusterName=clust_name, addonName="vpc-cni")
 
                 if response["addon"]["addonVersion"] != vpc_version:
-                    args = (
-                        "~/eksctl update addon --name vpc-cni  --version " + vpc_version + " --cluster " + clust_name
-                    )  # to update aws-node
-                    output = subprocess.call(args, shell=True)
+                    args = f"~/eksctl update addon --name vpc-cni  --version {vpc_version} --cluster {clust_name}"  # to update aws-node
+                    subprocess.call(args, shell=True)
         except Exception as e:
             logger.error("Failed to fetch Cluster OIDC value for cluster name: %s - Error: %s", clust_name, e)
     else:
-        args = "~/eksctl utils update-aws-node --cluster=" + clust_name + " --approve"
-        output = subprocess.call(args, shell=True)
+        args = f"~/eksctl utils update-aws-node --cluster={clust_name} --approve"
+        subprocess.call(args, shell=True)
 
     logger.info("addons update completed")
     end = time.time()
@@ -144,8 +139,8 @@ def add_on_upgrade(region, clust_name, d, v1):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # retrieves the self managed nodegroup name
-def get_old_smg_node_groups(region, clust_name, bclient):
-    args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
+def get_old_smg_node_groups(clust_name, bclient):
+    args = f"~/eksctl get nodegroup --cluster={clust_name} -o json"
     output = subprocess.check_output(args, shell=True)
     output = json.loads(output)  # to extract all nodegroups present in the cluster
     old_smg = []
@@ -161,13 +156,13 @@ def get_old_smg_node_groups(region, clust_name, bclient):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # updates the unmanaged nodegroup  by migrating to new nodegroup
-def update_unmanaged_nodegroup(region, clust_name, d, bclient):
+def update_unmanaged_nodegroup(clust_name, d, bclient):
     start_time = time.ctime()
     start = time.time()
     logger.info("update managed nodegroups Started At %s", start_time)
 
-    old_smg = get_old_smg_node_groups(region, clust_name, bclient)  # extract SELF MANAGED NODEGROUPS
-    args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
+    old_smg = get_old_smg_node_groups(clust_name, bclient)  # extract SELF MANAGED NODEGROUPS
+    args = f"~/eksctl get nodegroup --cluster={clust_name} -o json"
     output = subprocess.check_output(args, shell=True)
     output = json.loads(output)
     response = bclient.list_nodegroups(
@@ -186,16 +181,16 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
             for i in old_smg:
                 # creates a node group with CONTROL PLANE version
                 args = f"~/eksctl create nodegroup --cluster={clust_name}"
-                output = subprocess.call(args, shell=True)
-                ls = get_old_smg_node_groups(region, clust_name, bclient)
+                subprocess.call(args, shell=True)
+                ls = get_old_smg_node_groups(clust_name, bclient)
                 time.sleep(60)
                 # DRAINS the old node groups
                 args = f"~/eksctl drain nodegroup --cluster={clust_name} --name={i}"
-                output = subprocess.call(args, shell=True)
+                subprocess.call(args, shell=True)
                 time.sleep(60)
                 # DELETES the old node groups
                 args = f"~/eksctl delete nodegroup --cluster={clust_name} --name={i}"
-                output = subprocess.call(args, shell=True)
+                subprocess.call(args, shell=True)
         except Exception as e:
             logger.error("pdb set cant delete pods - Error: %s", e)
     else:
@@ -204,7 +199,7 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
 
     logger.info("**Logging unmanaged nodegroups....waiting for nodegroup to be active")
     time.sleep(240)
-    args = "~/eksctl get nodegroup --cluster=" + clust_name + " -o json"
+    args = f"~/eksctl get nodegroup --cluster={clust_name} -o json"
     output = subprocess.check_output(args, shell=True)
     output = json.loads(output)
     response = bclient.list_nodegroups(
@@ -230,16 +225,15 @@ def update_unmanaged_nodegroup(region, clust_name, d, bclient):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # creates a managed nodegroup
-def create_managed_nodegroup(region, clust_name, client):
+def create_managed_nodegroup(clust_name, client):
     start_time = time.ctime()
-    start = time.time()
     logger.info("creation of managed nodegroups Started At %s", str(start_time))
 
     start_time = time.ctime()
     start = time.time()
     logger.info("The Addons Upgrade Started At %s", str(start_time))
 
-    args = "~/eksctl create nodegroup --managed --cluster=" + clust_name
+    args = f"~/eksctl create nodegroup --managed --cluster={clust_name}"
     output = subprocess.call(args, shell=True)
 
     end = time.time()
@@ -251,12 +245,12 @@ def create_managed_nodegroup(region, clust_name, client):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # creates unmanaged nodegroup
-def create_unmanaged_nodegroup(region, clust_name, client):
+def create_unmanaged_nodegroup(clust_name, client):
     start_time = time.ctime()
     start = time.time()
     logger.info("creation of Unmanaged nodegroups Started At %s in cluster: %s", str(start_time), clust_name)
 
-    args = "~/eksctl create nodegroup --cluster=" + clust_name
+    args = f"~/eksctl create nodegroup --cluster={clust_name}"
     output = subprocess.call(args, shell=True)
 
     end = time.time()
@@ -289,7 +283,7 @@ def update_managed_nodegroup(region, clust_name, version, d, bclient):
             logger.info("nodegroup %s version before upgrade is %s", i, response["nodegroup"]["version"])
             # UPDATES MANAGED NODEGROUP
             args = f"~/eksctl upgrade nodegroup --name={i} --cluster={clust_name} --kubernetes-version={version}"
-            output = subprocess.call(args, shell=True)
+            subprocess.call(args, shell=True)
             response = bclient.describe_nodegroup(clusterName=clust_name, nodegroupName=i)
             logger.info("nodegroup %s version after upgrade is %s", i, response["nodegroup"]["version"])
             d["managed_nodegroup_after_update"][i] = response["nodegroup"]["version"]
@@ -315,19 +309,16 @@ def eksctl_execute(args):
     bclient = botoclient(region)
     loading_config(clust_name, region)
 
-    v1 = client.CoreV1Api()
-
-    rep = v1.list_namespaced_pod("kube-system")
     d = {}
     # ~~~~~~~~~~~~~~~~~~~~~~~~~UPGRADE
     # call to upgrade cluster to latest version
-    d = upgrade_cluster(region, clust_name, d, bclient, version)
+    d = upgrade_cluster(clust_name, d, bclient, version)
     # #call to upgrade addons to latest version
-    d = add_on_upgrade(region, clust_name, d, v1)
+    d = add_on_upgrade(region, clust_name, d)
     # call to update managed nodegroup
     d = update_managed_nodegroup(region, clust_name, str(version), d, bclient)
     # call to update unmanaged nodegroup b
-    d = update_unmanaged_nodegroup(region, clust_name, d, bclient)
+    d = update_unmanaged_nodegroup(clust_name, d, bclient)
     loading_config(clust_name, region)
 
     v1 = client.CoreV1Api()

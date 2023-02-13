@@ -83,15 +83,15 @@ def get_bearer_token(cluster_id: str, region: str) -> str:
     return "k8s-aws-v1." + re.sub(r"=*", "", base64_url)
 
 
-def loading_config(cluster_name, regionName) -> str:
+def loading_config(cluster_name: str, region: str) -> str:
     """loading kubeconfig with sts"""
-    eks = boto3.client("eks", region_name=regionName)
+    eks = boto3.client("eks", region_name=region)
     resp = eks.describe_cluster(name=cluster_name)
     configs = client.Configuration()
     configs.host = resp["cluster"]["endpoint"]
     configs.verify_ssl = False
     configs.debug = False
-    configs.api_key = {"authorization": "Bearer " + get_bearer_token(cluster_name, regionName)}
+    configs.api_key = {"authorization": "Bearer " + get_bearer_token(cluster_name, region)}
     client.Configuration.set_default(configs)
     return "Initialized"
 

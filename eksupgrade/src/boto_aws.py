@@ -70,9 +70,9 @@ def get_latest_instance(asg_name: str, add_time: datetime.datetime, region: str)
         raise e
 
 
-def wait_for_ready(instanceid: str, regionName: str) -> bool:
+def wait_for_ready(instanceid: str, region: str) -> bool:
     """Wait for the cluster to pass the status checks."""
-    ec2_client = boto3.client("ec2", region_name=regionName)
+    ec2_client = boto3.client("ec2", region_name=region)
     logger.info("Instance %s waiting for the instance to pass the Health Checks", instanceid)
     try:
         while (
@@ -89,9 +89,9 @@ def wait_for_ready(instanceid: str, regionName: str) -> bool:
     return True
 
 
-def check_asg_autoscaler(asg_name: str, regionName: str) -> bool:
+def check_asg_autoscaler(asg_name: str, region: str) -> bool:
     """Check whether the autoscaling is present or not."""
-    asg_client = boto3.client("autoscaling", region_name=regionName)
+    asg_client = boto3.client("autoscaling", region_name=region)
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     pat = "k8s.io/cluster-autoscaler/enabled"
     asg_list = []
@@ -101,9 +101,9 @@ def check_asg_autoscaler(asg_name: str, regionName: str) -> bool:
     return bool(asg_list)
 
 
-def enable_disable_autoscaler(asg_name: str, action: str, regionName: str) -> str:
+def enable_disable_autoscaler(asg_name: str, action: str, region: str) -> str:
     """Enable or disable the autoscaler depending on the provided action."""
-    asg_client = boto3.client("autoscaling", region_name=regionName)
+    asg_client = boto3.client("autoscaling", region_name=region)
     try:
         if action == "pause":
             asg_client.delete_tags(
