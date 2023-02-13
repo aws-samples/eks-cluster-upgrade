@@ -1016,7 +1016,7 @@ def nodegroup_customami(errors, cluster_name, region, report, customer_report, u
             else:
                 instance_id = i.spec.provider_id.split("/")[-1]
                 node_type = i.status.node_info.os_image
-                if "windows" in (node_type).lower():
+                if "windows" in node_type.lower():
                     node_type = "windows"
                 ec2Client = boto3.client("ec2", region_name=region)
                 res = ec2Client.describe_instances(InstanceIds=[instance_id])
