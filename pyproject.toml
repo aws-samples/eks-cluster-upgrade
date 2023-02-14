@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eksupgrade"
-version = "0.3.0"
+version = "0.4.0"
 description = "The Amazon EKS cluster upgrade utility"
 authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
 readme = "README.md"
@@ -13,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT No Attribution License (MIT-0)",
 ]
 include = [
@@ -65,7 +66,7 @@ build = "poetry build"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-boto3 = "^1.26.60"
+boto3 = "^1.26.71"
 kubernetes = ">=21.0.0 <25.0.0"
 
 
@@ -73,15 +74,15 @@ kubernetes = ">=21.0.0 <25.0.0"
 pytest = "^7.2.1"
 pytest-cov = "^4.0.0"
 coverage = "^7.1.0"
-moto = {extras = ["ec2", "eks", "ssm", "sts"], version = "^4.1.1"}
+moto = {extras = ["ec2", "eks", "ssm", "sts"], version = "^4.1.2"}
 
 
 [tool.poetry.group.dev.dependencies]
 isort = {extras = ["toml"], version = "^5.12.0"}
 black = "^22.12.0"
 pydocstyle = "^6.3.0"
-pylint = "^2.15.10"
-mypy = "^0.991"
+pylint = "^2.16.2"
+mypy = "^1.0.0"
 debugpy = "^1.6.6"
 
 
@@ -91,7 +92,8 @@ bandit = {extras = ["toml"], version = "^1.7.4"}
 
 
 [tool.poetry.group.types.dependencies]
-types-pyyaml = "^6.0.12.4"
+types-pyyaml = "^6.0.12.6"
+boto3-stubs = {extras = ["ec2", "eks", "ssm", "sts"], version = "^1.26.71"}
 
 [build-system]
 requires = ["poetry-core"]
