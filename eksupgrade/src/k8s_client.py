@@ -116,7 +116,7 @@ def unschedule_old_nodes(cluster_name: str, node_name: str, region: str) -> None
 
 def watcher(cluster_name: str, name: str, region: str) -> bool:
     """Watch whether the pod is deleted or not."""
-    loading_config(cluster_name=cluster_name, regionName=region)
+    loading_config(cluster_name, region)
     core_v1_api = client.CoreV1Api()
     _watcher = watch.Watch()
 
@@ -530,7 +530,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
 
 def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[int, str]]:
     """Determine whether cluster autoscaler is present."""
-    loading_config(cluster_name=cluster_name, regionName=region)
+    loading_config(cluster_name, region)
     apps_v1_api = client.AppsV1Api()
     res = apps_v1_api.list_deployment_for_all_namespaces()
     for res_i in res.items:
@@ -541,7 +541,7 @@ def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union
 
 def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, region: str) -> None:
     """Enable or disable deployment in cluster."""
-    loading_config(cluster_name=cluster_name, regionName=region)
+    loading_config(cluster_name, region)
     api = client.AppsV1Api()
     if operation == "pause":
         body = {"spec": {"replicas": 0}}
