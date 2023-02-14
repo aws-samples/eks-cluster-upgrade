@@ -31,7 +31,7 @@ There are a number of version compatibility constraints, health checks, etc., be
 7. Pod Security Policy - Eks privileged role has to be checked to be present with the current pod security policy.
 8. cluster addons - The cluster addons like kube-proxy, VPC CNI and CoreDNS are essential for running various services across the cluster and sometimes there are certain variable parameters present by them which have been customized by the users end as per the functionality the cluster supports which have to captured while upgrading and then added during the upgrade for the services to continue working smoothly as before.
 9. Pod Disruption Budget - The existence of PDB has to be checked in the cluster and minimum and maximum available with it has to be taken into account while upgrading.
-10. Horizontal Pod and Cluster Autoscaler - As the other components are upgraded to the compatible image version, a check firstly to check of these are present and then to upgrade them to compatible version with respect to the control plane. Deprecated API check - With every new version release there are a certain set of API which get deprecated and so a check for the resources running over them has to be done so that they do not break post upgrade
+10. Horizontal Pod and Cluster Autoscaler - As the other components are upgraded to the compatible image version, a check firstly to check of these are present and then to upgrade them to compatible version with respect to the control plane.
 
 ### Cluster Upgrade
 
