@@ -23,7 +23,6 @@ from .src.boto_aws import (
     worker_terminate,
 )
 from .src.eks_get_image_type import get_ami_name
-from .src.eksctlfinal import eksctl_execute
 from .src.k8s_client import (
     cluster_auto_enable_disable,
     delete_node,
@@ -157,9 +156,6 @@ def main(args) -> None:
         paralleled = args.parallel
         preflight = args.preflight
 
-        if args.eksctl:
-            sys.exit("updating using EKSCTL is still under testing will be launched soon")
-
         # Preflight Logic
         if not (pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.email, args.force)):
             logger.error("Pre-flight check for cluster %s failed!", cluster_name)
@@ -183,16 +179,6 @@ def main(args) -> None:
         # Checking Cluster is Active or Not Before Making an Update
         start = time.time()
         if is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE":
-            # if eksctl flag is enabled.
-            if args.eksctl:
-                logger.info("updating using EKSCTL")
-                eksctl_execute(args)
-                logger.info("Pre flight check for the upgraded cluster")
-                if not (pre_flight_checks(preflight, cluster_name, region, pass_vpc=pass_vpc)):
-                    logger.info("Pre flight check for cluster %s failed after it upgraded", cluster_name)
-                else:
-                    logger.info("After update check for cluster completed successfully")
-                sys.exit()
             update_cluster(cluster_name=cluster_name, version=to_update, region=region)
         time.sleep(5)
 

@@ -112,9 +112,9 @@ To view the arguments and options, run:
 eksupgrade --help
 ```
 
-```
+```sh
 usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
-                  [--eksctl] [--preflight] [--email EMAIL] [--parallel]
+                  [--preflight] [--email EMAIL] [--parallel]
                   [--log-level LOG_LEVEL] [--version]
                   name version region
 
@@ -123,13 +123,7 @@ Amazon EKS cluster upgrade
 positional arguments:
   name                  Cluster Name
   version               new version which you want to update
-  region                Give the region name af-south-1, eu-north-1, ap-
-                        south-1, eu-west-3, eu-west-2, eu-south-1, eu-west-1,
-                        ap-northeast-3, ap-northeast-2, me-central-1, me-
-                        south-1, ap-northeast-1, sa-east-1, ca-central-1, ap-
-                        east-1, ap-southeast-1, ap-southeast-2, ap-
-                        southeast-3, eu-central-1, us-east-1, us-east-2, us-
-                        west-1, us-west-2, us-gov-east-1, us-gov-west-1
+  region                The AWS region where the cluster resides
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -137,13 +131,12 @@ optional arguments:
   --max_retry MAX_RETRY
                         you can specify max retry or else by default it is 2
   --force               force pod eviction when you have pdb
-  --eksctl              eksctl upgrade process
-  --preflight           Run preflight check without upgrade
+  --preflight           Run pre-flight check without upgrade
   --email EMAIL         Email for sharing the preflight report
-  --parallel            Parallel Upgrade all node groups together
+  --parallel            Upgrade all nodegroups in parallel
   --log-level LOG_LEVEL
-                        The log level to be displayed in the console. Default
-                        to: INFO
+                        The log level to be displayed in the console.
+                        Default to: INFO
   --version             show program's version number and exit
 
 example:

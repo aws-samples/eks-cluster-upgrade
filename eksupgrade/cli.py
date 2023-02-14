@@ -57,8 +57,6 @@ Display the eksupgrade version:
     )
     parser.add_argument("--max_retry", default=2, type=int, help="you can specify max retry or else by default it is 2")
     parser.add_argument("--force", action="store_true", default=False, help="force pod eviction when you have pdb")
-    # Eksctl will be added in future version
-    parser.add_argument("--eksctl", action="store_true", default=False, help="eksctl upgrade process")
     parser.add_argument("--preflight", action="store_true", default=False, help="Run pre-flight check without upgrade")
     parser.add_argument("--email", default=False, help="Email for sharing the preflight report")
     parser.add_argument("--parallel", action="store_true", default=False, help="Upgrade all nodegroups in parallel")
