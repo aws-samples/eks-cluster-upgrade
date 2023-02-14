@@ -140,8 +140,7 @@ def get_cluster_version(
         horizontal_auto_scaler(errors, cluster_name, region, report, customer_report)
         cluster_auto_scaler(errors, cluster_name, region, report, customer_report)
 
-        if report["cluster"]["version"] != "1.21" and update_version:
-            deprecated_api_check(errors, cluster_name, region, report, customer_report, update_version)
+        # TODO: Revisit deprecation checks. Disabled due to confusing or misleading results per GH Issue #37.
 
         if email:
             logger.info("Delivering report via Email...")
@@ -829,56 +828,6 @@ def horizontal_auto_scaler(errors, cluster_name, region, report, customer_report
         report["preflight_status"] = False
 
 
-def deprecated_api_check(errors, cluster_name, region, report, customer_report, update_version):
-    loading_config(cluster_name, region)
-    with open("eksupgrade/src/S3Files/deprecatedApi", "r", encoding="utf-8") as f:
-        deprecated_api = json.load(f)
-
-    logger.info("Checking for any deprecated API being used....")
-    customer_report["deprecated Api"] = []
-    try:
-        dict = deprecated_api[update_version]
-        for key in dict.keys():
-            if key == "all-resources":
-                for k in dict[key].keys():
-                    if dict[key][k] == "permanent":
-                        customer_report["deprecated Api"].append(f"{k} API has been deprecated permanently ")
-                        logger.info("%s API has been deprecated permanently", k)
-                    else:
-                        customer_report["deprecated Api"].append(
-                            f"{k} API has been deprecated use {dict[key][k]} instead"
-                        )
-                        logger.info("%s API has been deprecated use %s instead", k, dict[key][k])
-            else:
-                deprecated_resource = []
-                new_resource = []
-                v1 = eval(key)
-                res = v1.get_api_resources()
-                for resource in res.resources:
-                    deprecated_resource.append(resource.name)
-                for k in dict[key].keys():
-                    v2 = eval(k)
-                    ret = v2.get_api_resources()
-                    for resource in ret.resources:
-                        new_resource.append(resource.name)
-                    if dict[key][k] in deprecated_resource and dict[key][k] not in new_resource:
-                        customer_report["deprecated Api"].append(
-                            f"Resource {dict[key][k]} is present in deprecated API {key} to be shifted to {k}"
-                        )
-                        errors.append(
-                            f"Resource {dict[key][k]} is present in deprecated API {key} to be shifted to {k}"
-                        )
-                        logger.info(
-                            "Resource %s is present in deprecated API %s to be shifted to %s", dict[key][k], key, k
-                        )
-        logger.info("Deprecated Api check completed")
-    except Exception as e:
-        errors.append(f"Deprecated API check failed {e}")
-        customer_report["deprecated Api"].append("Deprecated API check failed")
-        logger.error("Deprecated API check failed - Error: %s", e)
-        report["preflight_status"] = False
-
-
 def cmk_key_check(errors, cluster_name, region, cluster, report, customer_report):
     loading_config(cluster_name, region)
     cmk = boto3.client("kms", region_name=region)
@@ -1182,10 +1131,6 @@ def send_email(preflight, cluster_name, region, report, customer_report, email):
             htmlStart = htmlStart + "<li>" + str(s) + "</li>"
         htmlStart = htmlStart + "</ul></td></tr>"
         htmlStart = htmlStart + "<tr><td>cluster version</td><td>" + customer_report["cluster version"] + "</td></tr>"
-        if "deprecated Api" in customer_report.keys():
-            htmlStart = (
-                htmlStart + "<tr><td>deprecated Api</td><td>" + str(customer_report["deprecated Api"]) + "</td></tr>"
-            )
         htmlStart = (
             htmlStart
             + "<tr><td>horizontal auto scaler</td><td>"
