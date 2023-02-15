@@ -1,13 +1,13 @@
 # Amazon EKS Upgrade Utility
 
 <p align="center">
-<a href="https://github.com/aws-samples/amazon-eks-one-click-cluster-upgrade/actions/workflows/validate.yaml"><img alt="Validation Status" src="https://github.com/aws-samples/amazon-eks-one-click-cluster-upgrade/actions/workflows/validate.yaml/badge.svg?branch=main&event=push"></a>
-<a href="https://codecov.io/github/aws-samples/amazon-eks-one-click-cluster-upgrade?branch=main"><img alt="Coverage Status" src="https://codecov.io/github/aws-samples/amazon-eks-one-click-cluster-upgrade/coverage.svg?branch=main"></a>
+<a href="https://github.com/aws-samples/eks-cluster-upgrade/actions/workflows/validate.yaml"><img alt="Validation Status" src="https://github.com/aws-samples/eks-cluster-upgrade/actions/workflows/validate.yaml/badge.svg?branch=main&event=push"></a>
+<a href="https://codecov.io/github/aws-samples/eks-cluster-upgrade?branch=main"><img alt="Coverage Status" src="https://codecov.io/github/aws-samples/eks-cluster-upgrade/coverage.svg?branch=main"></a>
 <a href="https://pypi.org/project/eksupgrade/"><img alt="PyPI" src="https://img.shields.io/pypi/v/eksupgrade"></a>
 <a href="https://pepy.tech/project/eksupgrade"><img alt="Downloads" src="https://pepy.tech/badge/eksupgrade"></a>
 </p>
 
-Amazon EKS one-click cluster upgrade is a utility that automates the upgrade process for Amazon EKS clusters.
+Amazon EKS cluster upgrade is a utility that automates the upgrade process for Amazon EKS clusters.
 
 ## Process
 
@@ -23,7 +23,7 @@ There are a number of version compatibility constraints, health checks, etc., be
 
 1. Target Version Compatibility Check - Since any cluster in eks is always allowed to upgrade to one above version and not beyond a check for the target version is done as with each upgrade there are a lot of configuration changes and upgrading directly to a higher version can lead to breakdown of the services being provided by it.
 2. Customer Management Key - A cluster might have CMK Key associated with it and so it is essential to verify if the same exists in users account to carry out the upgrade
-3. Security Group - Every cluster has a security group associated with it to restrict and allow the flow of traffic across it and therefore it has to be verified whether it exists in the users VPC or not.
+3. Security Group - Every cluster has a security group associated with it to restrict and allow the flow of traffic across it, and therefore it has to be verified whether it exists in the user's VPC or not.
 4. Nodegroup and worker node detail - EKS cluster supports multiple types of node groups and so for the purpose of upgrade and there kubelet version compatibility check they have to classify to proceed with the upgrade step.
 5. Subnets - A minimum of 4-5 free IP are required when doing a cluster upgrade to launch new nodes and nodegroup with the old ones to keep the services of the cluster running while the upgrade is going on and so a check for them
    Target version compatibly check
@@ -45,7 +45,7 @@ There are a number of version compatibility constraints, health checks, etc., be
 
 ## Pre-Requisites
 
-Before running `eksupgrade`, you will need to have permission for both AWS as well as the Kubernetes cluster itself.
+Before running `eksupgrade`, you will need to have permission for both AWS and the Kubernetes cluster itself.
 
 1. Install `eksupgrade` locally:
 
@@ -53,7 +53,7 @@ Before running `eksupgrade`, you will need to have permission for both AWS as we
 pip install eksupgrade
 ```
 
-2. Ensure you have the necessary AWS permissions; the an example policy of required permissions is listed below:
+2. Ensure you have the necessary AWS permissions; an example policy of required permissions is listed below:
 
 ```json
 {
@@ -112,9 +112,9 @@ To view the arguments and options, run:
 eksupgrade --help
 ```
 
-```
+```sh
 usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
-                  [--eksctl] [--preflight] [--email EMAIL] [--parallel]
+                  [--preflight] [--email EMAIL] [--parallel]
                   [--log-level LOG_LEVEL] [--version]
                   name version region
 
@@ -123,13 +123,7 @@ Amazon EKS cluster upgrade
 positional arguments:
   name                  Cluster Name
   version               new version which you want to update
-  region                Give the region name af-south-1, eu-north-1, ap-
-                        south-1, eu-west-3, eu-west-2, eu-south-1, eu-west-1,
-                        ap-northeast-3, ap-northeast-2, me-central-1, me-
-                        south-1, ap-northeast-1, sa-east-1, ca-central-1, ap-
-                        east-1, ap-southeast-1, ap-southeast-2, ap-
-                        southeast-3, eu-central-1, us-east-1, us-east-2, us-
-                        west-1, us-west-2, us-gov-east-1, us-gov-west-1
+  region                The AWS region where the cluster resides
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -137,13 +131,12 @@ optional arguments:
   --max_retry MAX_RETRY
                         you can specify max retry or else by default it is 2
   --force               force pod eviction when you have pdb
-  --eksctl              eksctl upgrade process
-  --preflight           Run preflight check without upgrade
+  --preflight           Run pre-flight check without upgrade
   --email EMAIL         Email for sharing the preflight report
-  --parallel            Parallel Upgrade all node groups together
+  --parallel            Upgrade all nodegroups in parallel
   --log-level LOG_LEVEL
-                        The log level to be displayed in the console. Default
-                        to: INFO
+                        The log level to be displayed in the console.
+                        Default to: INFO
   --version             show program's version number and exit
 
 example:
