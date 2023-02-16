@@ -23,7 +23,7 @@ except ImportError:
 try:
     from kubernetes.client.models.v1beta1_eviction import V1beta1Eviction as V1Eviction
 except ImportError:
-    from Kubernetes.client.models.v1_eviction import V1Eviction
+    from kubernetes.client.models.v1_eviction import V1Eviction
 
 import boto3
 import yaml
