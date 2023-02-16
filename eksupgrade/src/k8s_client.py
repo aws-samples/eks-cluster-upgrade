@@ -153,7 +153,7 @@ def drain_nodes(cluster_name, node_name, forced, region) -> Optional[str]:
                         i.metadata.name, i.metadata.namespace, grace_period_seconds=0, body=client.V1DeleteOptions()
                     )
                 else:
-                    eviction_body = client.models.v1beta1_eviction.V1beta1Eviction(
+                    eviction_body = client.models.v1_eviction.V1Eviction(
                         metadata=client.V1ObjectMeta(name=i.metadata.name, namespace=i.metadata.namespace)
                     )
                     core_v1_api.create_namespaced_pod_eviction(
