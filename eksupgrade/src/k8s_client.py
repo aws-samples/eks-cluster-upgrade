@@ -21,7 +21,7 @@ except ImportError:
     from functools import lru_cache as cache
 
 try:
-    from Kubernetes.client.models.v1beta1_eviction import V1beta1Eviction as V1Eviction
+    from kubernetes.client.models.v1beta1_eviction import V1beta1Eviction as V1Eviction
 except ImportError:
     from Kubernetes.client.models.v1_eviction import V1Eviction
 
