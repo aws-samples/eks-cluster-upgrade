@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import pkgutil
 from typing import Any, Dict, List
 
 import boto3
@@ -15,6 +16,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .k8s_client import get_default_version, loading_config
 
 logger = logging.getLogger(__name__)
+
+
+def get_package_asset(filename: str, base_path: str = "S3Files/"):
+    """Get the specified package asset."""
+    _data = pkgutil.get_data(__package__, f"{base_path}/{filename}").decode("utf-8")
+    return json.loads(_data)
 
 
 # Function declaration for pre flight checks
@@ -207,8 +214,7 @@ def cluster_roles(
 ) -> None:
     """Get cluster roles."""
     loading_config(cluster_name, region)
-    with open("eksupgrade/src/S3Files/cluster_roles.json", "r", encoding="utf-8") as f:
-        cluster_roles_list = json.load(f)
+    cluster_roles_list = get_package_asset("cluster_roles.json")
 
     if preflight:
         cluster_roles_list = cluster_roles_list["preflight"]
@@ -327,9 +333,7 @@ def addon_version(
     cni_target_version: str = get_default_version("vpc-cni", **default_version_kwargs).split("-")[0].lstrip("v")
 
     # Kube Proxy config
-    with open("eksupgrade/src/S3Files/kube-proxy.json", "r", encoding="utf-8") as f:
-        kube_proxy_config = json.load(f)
-
+    kube_proxy_config = get_package_asset("kube-proxy.json")
     kube_proxy_container = kube_proxy_config["spec"]["template"]["spec"]["containers"][0]
     yaml_data["kube-proxy"] = {
         "image": kube_proxy_container["image"],
@@ -338,9 +342,7 @@ def addon_version(
     }
 
     # Core DNS config
-    with open("eksupgrade/src/S3Files/coredns.json", "r", encoding="utf-8") as f:
-        core_dns_config = json.load(f)
-
+    core_dns_config = get_package_asset("coredns.json")
     coredns_container = core_dns_config["spec"]["template"]["spec"]["containers"][0]
     yaml_data["coredns"] = {
         "image": coredns_container["image"],
@@ -349,9 +351,7 @@ def addon_version(
     }
 
     # VPC CNI config
-    with open("eksupgrade/src/S3Files/vpc-cni.json", "r", encoding="utf-8") as f:
-        vpc_cni_config = json.load(f)
-
+    vpc_cni_config = get_package_asset("vpc-cni.json")
     vpc_cni_container = vpc_cni_config["spec"]["template"]["spec"]["containers"][0]
     yaml_data["vpc-cni"] = {
         "image": vpc_cni_container["image"],
@@ -360,9 +360,7 @@ def addon_version(
     }
 
     # Kube Proxy config map
-    with open("eksupgrade/src/S3Files/kube-proxy-configmap.json", "r", encoding="utf-8") as f:
-        kube_proxy_config_map = json.load(f)
-
+    kube_proxy_config_map = get_package_asset("kube-proxy-configmap.json")
     config_map["certificate-authority"] = yaml.safe_load(kube_proxy_config_map["data"]["kubeconfig"])["clusters"][0][
         "cluster"
     ]["certificate-authority"]
