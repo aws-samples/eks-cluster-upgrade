@@ -26,6 +26,8 @@ from botocore.signers import RequestSigner
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 
+from eksupgrade.utils import get_package_dict, get_package_yaml
+
 logger = logging.getLogger(__name__)
 
 queue = queue.Queue()
@@ -394,9 +396,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
     apps_v1_api = client.AppsV1Api()
     rep = core_v1_api.list_namespaced_pod("kube-system")
 
-    with open("eksupgrade/src/S3Files/version_dict.json", "r", encoding="utf-8") as version_dict_file:
-        add_on_dict: Dict[str, Any] = json.load(version_dict_file)
-
+    add_on_dict = get_package_dict("version_dict.json")
     old_pods_names: List[str] = [_pod.metadata.name for _pod in rep.items]
     logger.info("The Addons Found = %s", old_pods_names)
 
@@ -431,8 +431,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
 
                     # If the cluster is LTE 1.7, patch the CoreDNS ConfigMap.
                     if _cluster_ver <= 170:
-                        with open("eksupgrade/src/S3Files/core-dns.yaml", "r", encoding="utf-8") as coredns_yaml:
-                            _coredns_configmap_body = yaml.safe_load(coredns_yaml)
+                        _coredns_configmap_body = get_package_yaml("core-dns.yaml")
                         core_v1_api.patch_namespaced_config_map(
                             name="coredns", namespace="kube-system", body=_coredns_configmap_body
                         )
@@ -500,9 +499,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
             elif "aws-node" in pod.metadata.name and _current_image != cni_new and not vpc_pass:
                 logger.info("%s Current Version = %s Updating To = %s", pod.metadata.name, _current_image, cni_new)
                 if flag_vpc:
-                    with open("eksupgrade/src/S3Files/vpc-cni.yaml", "r", encoding="utf-8") as vpc_cni_yaml:
-                        body = yaml.safe_load(vpc_cni_yaml)
-
+                    body = get_package_yaml("vpc-cni.yaml")
                     body["spec"]["template"]["spec"]["containers"][0]["image"] = f"{_image_base_uri}:{cni_new}"
                     old = body["spec"]["template"]["spec"]["initContainers"][0]["image"]
                     body["spec"]["template"]["spec"]["initContainers"][0]["image"] = f"{old.split(':')[0]}:{cni_new}"
