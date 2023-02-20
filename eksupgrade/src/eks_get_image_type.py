@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import boto3
 
@@ -10,46 +11,50 @@ from .k8s_client import find_node
 logger = logging.getLogger(__name__)
 
 
-def image_type(node_type, inst, region):
+def image_type(node_type: str, image_id: str, region: str) -> Optional[str]:
     """Return the image location."""
     ec2_client = boto3.client("ec2", region_name=region)
-    if node_type == "Amazon Linux 2":
+    node_type = node_type.lower()
+
+    if node_type == "amazon linux 2":
         filters = [
             {"Name": "owner-id", "Values": ["602401143452"]},
             {"Name": "name", "Values": ["amazon-eks-node-*"]},
             {"Name": "is-public", "Values": ["true"]},
         ]
-    elif "ubuntu" in node_type.lower():
+    elif node_type == "ubuntu":
         filters = [
             {"Name": "owner-id", "Values": ["099720109477"]},
             {"Name": "name", "Values": ["ubuntu-eks/k8s_*"]},
             {"Name": "is-public", "Values": ["true"]},
         ]
-    elif "bottlerocket" in node_type.lower():
+    elif node_type == "bottlerocket":
         filters = [
             {"Name": "owner-id", "Values": ["092701018921"]},
             {"Name": "name", "Values": ["bottlerocket-aws-k8s-*"]},
             {"Name": "is-public", "Values": ["true"]},
         ]
-    elif "Windows" in node_type:
+    elif node_type == "windows":
         filters = [
             {"Name": "owner-id", "Values": ["801119661308"]},
             {"Name": "name", "Values": ["Windows_Server-*-English-*-EKS_Optimized-*"]},
             {"Name": "is-public", "Values": ["true"]},
         ]
     else:
-        logger.info("Node type: %s is unsupported  - instance: %s", node_type, inst)
-        return True
+        logger.info("Node type: %s is unsupported  - Image ID: %s", node_type, image_id)
+        return None
 
     # describing image types
     images = ec2_client.describe_images(Filters=filters)
-    instances_list = []
-    for i in images.get("Images"):
-        instances_list.append([i.get("ImageId"), i.get("Name")])
-    for i in instances_list:
-        if inst in i[0]:
+    images_list = [[item.get("ImageId"), item.get("Name")] for item in images.get("Images", [])]
+
+    logger.debug("Images List: %s", images_list)
+
+    for i in images_list:
+        if image_id in i[0]:
+            logger.debug("Found image ID: %s in list - returning image name: %s", image_id, i[1])
             return i[1]
-    return inst in instances_list
+    return None
 
 
 def get_ami_name(cluster_name: str, asg_name: str, region: str):
@@ -65,13 +70,15 @@ def get_ami_name(cluster_name: str, asg_name: str, region: str):
     ans = []
     for reservation in response["Reservations"]:
         for instance in reservation["Instances"]:
-            instance_id = instance["ImageId"]
+            image_id = instance["ImageId"]
             # getting the instance type as amz2 or windows or ubuntu
             node_type = find_node(cluster_name, instance["InstanceId"], "os_type", region)
+            _image_type = image_type(node_type=node_type, image_id=image_id, region=region)
+            logger.debug("_image_type: %s", _image_type)
             ans.append(
                 [
                     node_type,
-                    image_type(node_type=node_type, inst=instance_id, region=region),
+                    _image_type,
                 ]
             )
     # custom logic to check whether the os_type is same if same returning and if not returning the least repeated name

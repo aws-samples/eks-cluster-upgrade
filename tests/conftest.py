@@ -36,3 +36,21 @@ def eks_client(aws_creds, region) -> Generator[Any, None, None]:
     with mock_eks():
         client = boto3.client("eks", region_name=region)
         yield client
+
+
+@pytest.fixture
+def cluster_name() -> str:
+    """Define the EKS cluster name to be used across test mocks."""
+    return "eks-test"
+
+
+@pytest.fixture
+def eks_cluster(eks_client, cluster_name):
+    """Define the EKS cluster to be reused for mocked calls."""
+    eks_client.create_cluster(
+        name=cluster_name,
+        version="1.23",
+        roleArn=f"arn:aws:iam::123456789012:role/{cluster_name}",
+        resourcesVpcConfig={},
+    )
+    yield
