@@ -227,7 +227,7 @@ class Cluster(EksResource):
 
     @property
     def cluster_name(self) -> str:
-        """Return the cluster ID."""
+        """Return the cluster name."""
         return self.name
 
     @property
