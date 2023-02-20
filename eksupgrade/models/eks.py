@@ -234,7 +234,7 @@ class Cluster(EksResource):
     def cluster_identifier(self) -> str:
         """Return the preferred identifier for the cluster.
 
-        If the cluster is an outpost, use the resource ID.
+        If the cluster is a local cluster deployed on AWS Outposts, the resource ID must be used.
         If not, use the cluster name.
 
         """
