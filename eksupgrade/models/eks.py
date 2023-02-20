@@ -49,11 +49,12 @@ def requires_cluster(function):
     """Decorate methods to require a cluster attribute."""
 
     def wrapper(self, *args, **kwargs):
-        if not self.cluster:
+        if not self.cluster.name:
             logger.error(
                 "Unable to use method: %s without the cluster attribute! Pass a cluster to this child object!",
                 function.__name__,
             )
+            return None
         return function(self, *args, **kwargs)
 
     return wrapper
