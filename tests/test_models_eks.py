@@ -11,7 +11,7 @@ def test_cluster_resource(eks_client, eks_cluster, cluster_name, region) -> None
     cluster_dict = cluster_resource.to_dict()
     assert cluster_dict
     assert isinstance(cluster_dict, dict)
-    assert cluster_dict["version"] == "1.21"
+    assert cluster_dict["version"] == "1.23"
     assert len(cluster_dict.keys()) == 15
     assert cluster_resource.name == cluster_resource.cluster_name
 
