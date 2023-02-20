@@ -20,7 +20,7 @@ try:
 except ImportError:
     from functools import lru_cache as cache
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_eks.client import EKSClient
     from mypy_boto3_eks.type_defs import (
         AddonInfoTypeDef,
@@ -99,7 +99,7 @@ class ClusterAddon(EksResource):
     configuration_values: str = ""
     cluster: Cluster = field(default_factory=lambda: Cluster(arn=""))
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         """Return the string representation of a Cluster Addon."""
         return f"<{self.__class__.__name__} - Name: {self.name} | Version: {self.version} | Last Status: {self.status}>"
 
@@ -177,7 +177,7 @@ class Cluster(EksResource):
     secrets_key_arn: str = ""
     cluster_logging_enabled: bool = False
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         """Return the string representation of a Cluster."""
         return f"<{self.__class__.__name__} - Name: {self.name} | Version: {self.version} | Last Status: {self.status}>"
 

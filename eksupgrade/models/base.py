@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import boto3
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_sts import STSClient
 else:
     STSClient = object
@@ -23,11 +23,7 @@ class BaseResource(ABC):
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the dictionary representation of this object."""
-        try:
-            return self.__dict__
-        except Exception as error:
-            logger.error("Exception encountered attempting to convert object to dictionary! Error: %s", error)
-        return {}
+        return self.__dict__
 
 
 @dataclass
