@@ -530,15 +530,15 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
         raise error
 
 
-def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[int, str]]:
-    """Determine whether cluster autoscaler is present."""
+def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[bool, int]]:
+    """Determine whether or not cluster autoscaler is present."""
     loading_config(cluster_name, region)
     apps_v1_api = client.AppsV1Api()
     res = apps_v1_api.list_deployment_for_all_namespaces()
     for res_i in res.items:
         if res_i.metadata.name == "cluster-autoscaler":
             return [True, res_i.spec.replicas]
-    return [False, "NAN"]
+    return [False, 0]
 
 
 def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, region: str) -> None:
