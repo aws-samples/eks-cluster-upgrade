@@ -17,7 +17,7 @@ from .base import AwsRegionResource
 
 try:
     from functools import cache
-except ImportError:
+except ImportError:  # pragma: no cover
     from functools import lru_cache as cache
 
 if TYPE_CHECKING:  # pragma: no cover
