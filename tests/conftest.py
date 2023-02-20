@@ -49,7 +49,7 @@ def eks_cluster(eks_client, cluster_name):
     """Define the EKS cluster to be reused for mocked calls."""
     eks_client.create_cluster(
         name=cluster_name,
-        version="1.21",
+        version="1.23",
         roleArn=f"arn:aws:iam::123456789012:role/{cluster_name}",
         resourcesVpcConfig={},
     )
