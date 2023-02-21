@@ -114,7 +114,7 @@ eksupgrade --help
 
 ```sh
 usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
-                  [--preflight] [--email EMAIL] [--parallel]
+                  [--preflight] [--parallel]
                   [--log-level LOG_LEVEL] [--version]
                   name version region
 
@@ -132,7 +132,6 @@ optional arguments:
                         you can specify max retry or else by default it is 2
   --force               force pod eviction when you have pdb
   --preflight           Run pre-flight check without upgrade
-  --email EMAIL         Email for sharing the preflight report
   --parallel            Upgrade all nodegroups in parallel
   --log-level LOG_LEVEL
                         The log level to be displayed in the console.

@@ -28,7 +28,6 @@ def pre_flight_checks(
     region: str,
     pass_vpc: bool,
     update_version: bool = False,
-    email: bool = False,
     force_upgrade: bool = False,
 ) -> bool:
     """Handle the pre-flight checks."""
@@ -38,13 +37,6 @@ def pre_flight_checks(
 
     errors: List[str] = []
     try:
-        if email:
-            ses_client = boto3.client("ses", region_name="ap-south-1")
-            identities = ses_client.list_identities()
-            if email not in identities["Identities"]:
-                ses_client.verify_email_identity(EmailAddress=email)
-                logger.info("Please check your inbox to verify your email: %s", email)
-
         core_v1_api = client.CoreV1Api()
         logger.info("Verifying User IAM Role....")
         core_v1_api.list_namespaced_service("default")
@@ -59,7 +51,6 @@ def pre_flight_checks(
             update_version,
             report,
             customer_report,
-            email,
             force_upgrade,
         )
 
@@ -84,7 +75,6 @@ def get_cluster_version(
     update_version,
     report,
     customer_report,
-    email,
     force_upgrade,
 ) -> None:
     """Determine the cluster version."""
@@ -142,12 +132,7 @@ def get_cluster_version(
         pod_disruption_budget(errors, cluster_name, region, report, customer_report, force_upgrade)
         horizontal_auto_scaler(errors, cluster_name, region, report, customer_report)
         cluster_auto_scaler(errors, cluster_name, region, report, customer_report)
-
         # TODO: Revisit deprecation checks. Disabled due to confusing or misleading results per GH Issue #37.
-
-        if email:
-            logger.info("Delivering report via Email...")
-            send_email(preflight, cluster_name, region, report, customer_report, email)
     except Exception as error:
         errors.append(f"Some error occurred during preflight check process {error}")
         customer_report["cluster version"] = "Some error occured during preflight check process"
@@ -1053,316 +1038,3 @@ def nodegroup_customami(errors, cluster_name, region, report, customer_report, u
         logger.error("Error occurred while checking node group details - Error: %s", e)
         customer_report["node group details"] = "Error occurred while checking node group details"
         report["preflight_status"] = False
-
-
-# Publish a preflight report via SES
-def send_email(preflight, cluster_name, region, report, customer_report, email):
-    try:
-        ses_client = boto3.client("ses", region_name="ap-south-1")
-        htmlStart = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Document</title><style>table,th,td {border: 1px solid black;border-collapse: collapse;}th,td {padding: 10px;}th {text-align: left;}</style></head><body>'
-        htmlend = ""
-        if preflight:
-            htmlStart = (
-                htmlStart
-                + "<h2>Preflight check for cluster "
-                + cluster_name
-                + " in region "
-                + region
-                + " : "
-                + str(report["preflight_status"])
-                + "</h2>"
-            )
-        else:
-            htmlStart = (
-                htmlStart
-                + "<h2>Postflight check for cluster "
-                + cluster_name
-                + " in region "
-                + region
-                + " : "
-                + str(report["preflight_status"])
-                + "</h2>"
-            )
-        if report["preflight_status"]:
-            if preflight:
-                htmlStart = htmlStart + "<h3>The preflight check for your cluster completed successfully</h3>"
-            else:
-                htmlStart = htmlStart + "<h3>The postflight check for your cluster completed successfully</h3>"
-                htmlStart = htmlStart + "All things upgraded successfully"
-
-        else:
-            if preflight:
-                htmlStart = (
-                    htmlStart
-                    + "<h3>The preflight check for your cluster failed, please check the below report for more details</h3>"
-                )
-            else:
-                htmlStart = (
-                    htmlStart
-                    + "<h3>The postflight check for your cluster failed, please check the below report for more details</h3>"
-                )
-                htmlStart = htmlStart + "Certain things couldn’t be upgraded during the upgrade"
-
-        htmlStart = (
-            htmlStart
-            + "<h3>General Check details</h3><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody>"
-        )
-
-        htmlStart = htmlStart + "<tr><td>CMK Key</td><td>" + customer_report["CMK Key"] + "</td></tr>"
-        htmlStart = htmlStart + "<tr><td>IAM role</td><td>" + customer_report["IAM role"] + "</td></tr>"
-        htmlStart = (
-            htmlStart + "<tr><td>cluster autoscaler</td><td>" + customer_report["cluster autoscaler"] + "</td></tr>"
-        )
-        if "cluster upgradation" in customer_report.keys():
-            htmlStart = (
-                htmlStart
-                + "<tr><td>cluster upgradation</td><td>"
-                + customer_report["cluster upgradation"]
-                + "</td></tr>"
-            )
-        htmlStart = htmlStart + "<tr><td>Cluster Roles</td><td><ul>"
-        for s in customer_report["cluster role"]:
-            htmlStart = htmlStart + "<li>" + str(s) + "</li>"
-        htmlStart = htmlStart + "</ul></td></tr>"
-        htmlStart = htmlStart + "<tr><td>cluster version</td><td>" + customer_report["cluster version"] + "</td></tr>"
-        htmlStart = (
-            htmlStart
-            + "<tr><td>horizontal auto scaler</td><td>"
-            + customer_report["horizontal auto scaler"]
-            + "</td></tr>"
-        )
-        htmlStart = (
-            htmlStart
-            + "<tr><td>pod disruption budget</td><td>"
-            + str(customer_report["pod disruption budget"])
-            + "</td></tr>"
-        )
-        htmlStart = (
-            htmlStart + "<tr><td>pod security policy</td><td>" + customer_report["pod security policy"] + "</td></tr>"
-        )
-        htmlStart = htmlStart + "<tr><td>security group</td><td>" + customer_report["security group"] + "</td></tr>"
-        htmlStart = htmlStart + "<tr><td>subnet</td><td><ul>"
-        for s in customer_report["subnet"]:
-            htmlStart = htmlStart + "<li>" + str(s) + "</li>"
-        htmlStart = htmlStart + "</ul></td></tr>"
-        htmlStart = htmlStart + "</tbody></table>"
-
-        htmlStart = htmlStart + "<h3>Addons details</h3>"
-        if "coredns" in customer_report["addons"].keys() and len(customer_report["addons"]["coredns"].keys()) != 0:
-            if "image" in customer_report["addons"]["coredns"].keys():
-                htmlStart = (
-                    htmlStart
-                    + "<p>Core DNS </p>"
-                    + "<table><thead><td>Corefile</td><td>Image</td><td>Mount Path</td><td>Version</td></thead><tbody><tr>"
-                )
-                htmlStart = htmlStart + "<td>" + customer_report["addons"]["coredns"]["corefile"]["message"] + "<ul>"
-                if "default-corefile-fields" in customer_report["addons"]["coredns"]["corefile"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>default-corefile-fields "
-                        + str(customer_report["addons"]["coredns"]["corefile"]["default-corefile-fields"])
-                        + "</li>"
-                    )
-                if "userdefined-corefile-fields" in customer_report["addons"]["coredns"]["corefile"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>userdefined-corefile-fields "
-                        + str(customer_report["addons"]["coredns"]["corefile"]["userdefined-corefile-fields"])
-                        + "</li>"
-                    )
-                htmlStart = htmlStart + "</ul></td><td>" + customer_report["addons"]["coredns"]["image"] + "</td>"
-                htmlStart = htmlStart + "<td>" + customer_report["addons"]["coredns"]["mount_paths"]["message"] + "<ul>"
-                if "default-mountpaths" in customer_report["addons"]["coredns"]["mount_paths"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>default-mountpaths "
-                        + str(customer_report["addons"]["coredns"]["mount_paths"]["default-mountpaths"])
-                        + "</li>"
-                    )
-                if "userdefined-mountpaths" in customer_report["addons"]["coredns"]["mount_paths"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>userdefined-mountpaths "
-                        + str(customer_report["addons"]["coredns"]["mount_paths"]["userdefined-mountpaths"])
-                        + "</li>"
-                    )
-                htmlStart = htmlStart + "</ul></td><td>" + customer_report["addons"]["coredns"]["version"] + "</td>"
-                htmlStart = htmlStart + "</tr></tbody></table>"
-            else:
-                htmlStart = htmlStart + "<p>Core DNS </p>"
-                htmlStart = htmlStart + "<p>" + customer_report["addons"]["coredns"]["version"] + "</p>"
-
-        if (
-            "kube-proxy" in customer_report["addons"].keys()
-            and len(customer_report["addons"]["kube-proxy"].keys()) != 0
-        ):
-            if "image" in customer_report["addons"]["kube-proxy"].keys():
-                htmlStart = (
-                    htmlStart
-                    + "<p>Kube Proxy </p>"
-                    + "<table><thead><td>Certificate Authority</td><td>Image</td><td>Mount Path</td><td>Version</td><td>Server Endpoint</td></thead><tbody><tr>"
-                )
-                htmlStart = (
-                    htmlStart
-                    + "<td>"
-                    + customer_report["addons"]["kube-proxy"]["certificate-authority"]["message"]
-                    + "</td>"
-                )
-                htmlStart = htmlStart + "<td>" + customer_report["addons"]["kube-proxy"]["image"] + "</td>"
-                htmlStart = (
-                    htmlStart + "<td>" + customer_report["addons"]["kube-proxy"]["mount_paths"]["message"] + "<ul>"
-                )
-                if "default-mountpaths" in customer_report["addons"]["kube-proxy"]["mount_paths"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>default-mountpaths "
-                        + str(customer_report["addons"]["kube-proxy"]["mount_paths"]["default-mountpaths"])
-                        + "</li>"
-                    )
-                if "userdefined-mountpaths" in customer_report["addons"]["kube-proxy"]["mount_paths"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>userdefined-mountpaths "
-                        + str(customer_report["addons"]["kube-proxy"]["mount_paths"]["userdefined-mountpaths"])
-                        + "</li>"
-                    )
-                htmlStart = htmlStart + "</ul></td><td>" + customer_report["addons"]["kube-proxy"]["version"] + "</td>"
-                htmlStart = (
-                    htmlStart + "<td>" + customer_report["addons"]["kube-proxy"]["server-endpoint"]["message"] + "</td>"
-                )
-                htmlStart = htmlStart + "</tr></tbody></table>"
-            else:
-                htmlStart = htmlStart + "<p>Kube Proxy </p>"
-                htmlStart = htmlStart + "<p>" + customer_report["addons"]["kube-proxy"]["version"] + "</p>"
-
-        if "vpc-cni" in customer_report["addons"].keys() and len(customer_report["addons"]["vpc-cni"].keys()) != 0:
-            if "image" in customer_report["addons"]["vpc-cni"]:
-                htmlStart = (
-                    htmlStart
-                    + "<p>VPC CNI </p>"
-                    + "<table><thead><td>Image</td><td>Mount Path</td><td>Version</td><td>Env</td></thead><tbody><tr>"
-                )
-                htmlStart = htmlStart + "<td>" + customer_report["addons"]["vpc-cni"]["image"] + "</td>"
-                htmlStart = htmlStart + "<td>" + customer_report["addons"]["vpc-cni"]["mount_paths"]["message"] + "<ul>"
-                if "default-mountpaths" in customer_report["addons"]["vpc-cni"]["mount_paths"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>default-mountpaths "
-                        + str(customer_report["addons"]["vpc-cni"]["mount_paths"]["default-mountpaths"])
-                        + "</li>"
-                    )
-                if "userdefined-mountpaths" in customer_report["addons"]["vpc-cni"]["mount_paths"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>userdefined-mountpaths "
-                        + str(customer_report["addons"]["vpc-cni"]["mount_paths"]["userdefined-mountpaths"])
-                        + "</li>"
-                    )
-                htmlStart = htmlStart + "</ul></td><td>" + customer_report["addons"]["vpc-cni"]["version"] + "</td>"
-                htmlStart = htmlStart + "<td>" + customer_report["addons"]["vpc-cni"]["env"]["message"] + "<ul>"
-                if "default-envs" in customer_report["addons"]["vpc-cni"]["env"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>default-envs "
-                        + str(customer_report["addons"]["vpc-cni"]["env"]["default-envs"])
-                        + "</li>"
-                    )
-                if "userdefined-envs" in customer_report["addons"]["vpc-cni"]["env"].keys():
-                    htmlStart = (
-                        htmlStart
-                        + "<li>userdefined-envs "
-                        + str(customer_report["addons"]["vpc-cni"]["env"]["userdefined-envs"])
-                        + "</li>"
-                    )
-                htmlStart = htmlStart + "</ul></td></tr></tbody></table>"
-            else:
-                htmlStart = htmlStart + "<p>VPC Cni </p>"
-                htmlStart = htmlStart + "<p>" + customer_report["addons"]["vpc-cni"]["version"] + "</p>"
-        if customer_report["nodegroup_details"]:
-            node_groups = customer_report["nodegroup_details"]
-            htmlStart = htmlStart + "<h3>Node groups</h3>"
-            htmlStart = (
-                htmlStart
-                + "<table><thead><tr><th>Node group type</th><th>Autoscaling group</th><th>Custom launch template</th><th>AMI image</th><th>Custom AMI</th><th>Node type</th><th>Version</th><th>Version Compatibility</th></tr></thead><tbody>"
-            )
-            for k in node_groups.keys():
-                if k == "fargate" and len(node_groups[k].keys()) > 0:
-                    for id in node_groups[k].keys():
-                        htmlStart = (
-                            htmlStart
-                            + "<tr><td>Fargate</td><td>--</td><td>--</td><td>--</td><td>--</td><td>"
-                            + id
-                            + "</td>"
-                            + "<td>"
-                            + node_groups[k][id]["version"]
-                            + "</td><td>"
-                            + str(node_groups[k][id]["version_compatibility"])
-                            + "</td></tr>"
-                        )
-                if k == "managed" and len(node_groups[k].keys()) > 0:
-                    for autoscaling in node_groups[k].keys():
-                        for n in node_groups[k][autoscaling]:
-                            if n == "instances":
-                                for inst in node_groups[k][autoscaling][n]:
-                                    htmlStart = htmlStart + "<tr><td>Managed</td>"
-                                    htmlStart = htmlStart + "<td>" + autoscaling + "</td>"
-                                    htmlStart = (
-                                        htmlStart
-                                        + "<td>"
-                                        + str(node_groups[k][autoscaling]["custom_launch_template"])
-                                        + "</td>"
-                                    )
-                                    htmlStart = htmlStart + "<td>" + str(inst["ami"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["custom_ami"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["node_type"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["version"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["version_compatibility"]) + "</td>"
-                                    htmlend = htmlend + "</tr>"
-                if k == "self-managed" and len(node_groups[k].keys()) > 0:
-                    for autoscaling in node_groups[k].keys():
-                        for n in node_groups[k][autoscaling]:
-                            if n == "instances":
-                                for inst in node_groups[k][autoscaling][n]:
-                                    htmlStart = htmlStart + "<tr><td>Self Managed</td>"
-                                    htmlStart = htmlStart + "<td>" + autoscaling + "</td>"
-                                    htmlStart = htmlStart + "<td>" + "--" + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["ami"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["custom_ami"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["node_type"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["version"]) + "</td>"
-                                    htmlStart = htmlStart + "<td>" + str(inst["version_compatibility"]) + "</td>"
-                                    htmlend = htmlend + "</tr>"
-
-        htmlend = htmlend + "</tbody></table></body></html>"
-        CHARSET = "UTF-8"
-        HTML_EMAIL_CONTENT = htmlStart + htmlend
-        if preflight:
-            subject = "Preflight check report for cluster " + cluster_name + " in region " + region
-        else:
-            subject = "Postflight check report for cluster " + cluster_name + " in region " + region
-        try:
-            ses_client.send_email(
-                Destination={
-                    "ToAddresses": [
-                        email,
-                    ],
-                },
-                Message={
-                    "Body": {
-                        "Html": {
-                            "Charset": CHARSET,
-                            "Data": HTML_EMAIL_CONTENT,
-                        }
-                    },
-                    "Subject": {
-                        "Charset": CHARSET,
-                        "Data": subject,
-                    },
-                },
-                Source=email,
-            )
-            logger.info("It may take sometime for the user to get email delivered if verified")
-        except:
-            logger.error("The email given is not verified by user to share the report over it")
-    except Exception as e:
-        logger.error("Error occurred while sharing email - Error: %s", e)
