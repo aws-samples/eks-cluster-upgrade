@@ -157,7 +157,7 @@ def main(args) -> None:
         preflight = args.preflight
 
         # Preflight Logic
-        if not (pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.email, args.force)):
+        if not (pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.force)):
             logger.error("Pre-flight check for cluster %s failed!", cluster_name)
             sys.exit()
         else:
@@ -272,7 +272,7 @@ def main(args) -> None:
         logger.info("EKS Cluster %s UPDATED TO %s", cluster_name, to_update)
         logger.info("Post flight check for the upgraded cluster")
 
-        if not (pre_flight_checks(False, cluster_name, region, args.pass_vpc, email=args.email)):
+        if not (pre_flight_checks(False, cluster_name, region, args.pass_vpc)):
             logger.info("Post flight check for cluster %s failed after it upgraded", cluster_name)
         else:
             logger.info("After update check for cluster completed successfully")
