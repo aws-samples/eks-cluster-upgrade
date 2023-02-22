@@ -7,7 +7,6 @@ Attributes:
 from __future__ import annotations
 
 import base64
-import json
 import logging
 import queue
 import re
@@ -26,12 +25,11 @@ except ImportError:
     from kubernetes.client.models.v1_eviction import V1Eviction
 
 import boto3
-import yaml
 from botocore.signers import RequestSigner
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 
-from eksupgrade.utils import get_package_dict, get_package_yaml
+from eksupgrade.utils import get_package_dict
 
 logger = logging.getLogger(__name__)
 
@@ -427,19 +425,8 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
                     _current_image,
                     coredns_new,
                 )
-                coredns_deployment_body = _container_spec("coredns", _image_base_uri, coredns_new)
                 if flag_core:
-                    apps_v1_api.patch_namespaced_deployment(
-                        name="coredns", namespace="kube-system", body=coredns_deployment_body, pretty=True
-                    )
                     update_eks_addon(cluster_name, "coredns", region_name, coredns_new)
-
-                    # If the cluster is LTE 1.7, patch the CoreDNS ConfigMap.
-                    if _cluster_ver <= 170:
-                        _coredns_configmap_body = get_package_yaml("core-dns.yaml")
-                        core_v1_api.patch_namespaced_config_map(
-                            name="coredns", namespace="kube-system", body=_coredns_configmap_body
-                        )
                     flag_core = False
                 time.sleep(20)
 
@@ -461,11 +448,7 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
                         _current_image,
                         kubeproxy_new,
                     )
-                    body = _container_spec("kube-proxy", _image_base_uri, kubeproxy_new)
                     if flag_proxy:
-                        apps_v1_api.patch_namespaced_daemon_set(
-                            name="kube-proxy", namespace="kube-system", body=body, pretty=True
-                        )
                         update_eks_addon(cluster_name, "kube-proxy", region_name, kubeproxy_new)
                         flag_proxy = False
                     time.sleep(20)
@@ -504,13 +487,6 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
             elif "aws-node" in pod.metadata.name and _current_image != cni_new and not vpc_pass:
                 logger.info("%s Current Version = %s Updating To = %s", pod.metadata.name, _current_image, cni_new)
                 if flag_vpc:
-                    body = get_package_yaml("vpc-cni.yaml")
-                    body["spec"]["template"]["spec"]["containers"][0]["image"] = f"{_image_base_uri}:{cni_new}"
-                    old = body["spec"]["template"]["spec"]["initContainers"][0]["image"]
-                    body["spec"]["template"]["spec"]["initContainers"][0]["image"] = f"{old.split(':')[0]}:{cni_new}"
-                    apps_v1_api.patch_namespaced_daemon_set(
-                        namespace="kube-system", name="aws-node", body=body, pretty=True
-                    )
                     update_eks_addon(cluster_name, "vpc-cni", region_name, cni_new)
                     flag_vpc = False
                 time.sleep(20)
