@@ -3,8 +3,6 @@
 import json
 import pkgutil
 
-import yaml
-
 
 def get_package_asset(filename: str, base_path: str = "src/S3Files/") -> str:
     """Get the specified package asset data."""
@@ -15,9 +13,3 @@ def get_package_dict(filename: str, base_path: str = "src/S3Files/"):
     """Get the specified package asset data dictionary."""
     _data = get_package_asset(filename, base_path)
     return json.loads(_data)
-
-
-def get_package_yaml(filename: str, base_path: str = "src/S3Files/"):
-    """Get the specified package asset data YAML."""
-    _data = get_package_asset(filename, base_path)
-    return yaml.safe_load(_data)

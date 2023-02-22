@@ -1,9 +1,7 @@
 """Define the preflight module."""
 from __future__ import annotations
 
-import json
 import logging
-import pkgutil
 from typing import Any, Dict, List
 
 import boto3
