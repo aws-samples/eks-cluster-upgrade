@@ -415,7 +415,6 @@ def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: 
             images: List[str] = [c.image for c in pod.spec.containers]
             image = "".join(images)
             _current_image = image.rsplit(":", maxsplit=1)[-1]
-            _cluster_ver = int("".join(_current_image.replace("v", "").replace("-", ".").split(".")[:3]))
             _image_base_uri: str = image.split(":", maxsplit=1)[0]
 
             if "coredns" in pod.metadata.name and _current_image != coredns_new:
