@@ -124,7 +124,8 @@ def get_cluster_version(
                 return
         cmk_key_check(errors, cluster_name, region, cluster_details, report, customer_report)
         security_group_check(errors, cluster_name, region, cluster_details, report, customer_report)
-        pod_security_policies(errors, cluster_name, region, report, customer_report)
+        if float(cluster_details["cluster"]["version"]) < 1.25:
+            pod_security_policies(errors, cluster_name, region, report, customer_report)
         node_group_details = nodegroup_customami(errors, cluster_name, region, report, customer_report, update_version)
         report["nodegroup_details"] = node_group_details
         customer_report["nodegroup_details"] = node_group_details
