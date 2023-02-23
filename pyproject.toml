@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eksupgrade"
-version = "0.6.0"
+version = "0.6.1"
 description = "The Amazon EKS cluster upgrade utility"
 authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
 readme = "README.md"
@@ -67,7 +67,7 @@ build = "poetry build"
 [tool.poetry.dependencies]
 python = "^3.8"
 boto3 = "^1.26.71"
-kubernetes = ">=21.0.0 <26.0.0"
+kubernetes = ">=21.0.0 <25.0.0"
 
 
 [tool.poetry.group.test.dependencies]
