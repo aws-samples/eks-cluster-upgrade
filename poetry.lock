@@ -101,18 +101,18 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "boto3"
-version = "1.26.77"
+version = "1.26.78"
 description = "The AWS SDK for Python"
 category = "main"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.26.77-py3-none-any.whl", hash = "sha256:17f0d782487275cac12676a61b3f1a4900954cc454c842b8551ca47a3dcd59b4"},
-    {file = "boto3-1.26.77.tar.gz", hash = "sha256:bf808f7433629650128ab577a9d4a0f4daf072d9f2f3a907b9d567a6952d9154"},
+    {file = "boto3-1.26.78-py3-none-any.whl", hash = "sha256:0c593017fa49dbc34dcdbd5659208f2daf293a499d5f4d7e61978cd6b5d72a97"},
+    {file = "boto3-1.26.78.tar.gz", hash = "sha256:488bf63d65864ab7fcdf9337c5aa4d825d444e253738a60f80789916bacc47dc"},
 ]
 
 [package.dependencies]
-botocore = ">=1.29.77,<1.30.0"
+botocore = ">=1.29.78,<1.30.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.6.0,<0.7.0"
 
@@ -121,14 +121,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.26.77"
-description = "Type annotations for boto3 1.26.77 generated with mypy-boto3-builder 7.12.4"
+version = "1.26.78"
+description = "Type annotations for boto3 1.26.78 generated with mypy-boto3-builder 7.12.4"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "boto3-stubs-1.26.77.tar.gz", hash = "sha256:a828b1d9b97b989d0ce127550f5e66fc5f08f5fd4d96fd59c73dd68de7dd598d"},
-    {file = "boto3_stubs-1.26.77-py3-none-any.whl", hash = "sha256:e32f2bf20fd1be6c813cb6f53ca0d42ab609d88c4865068340a0f4b7c256478a"},
+    {file = "boto3-stubs-1.26.78.tar.gz", hash = "sha256:e8f1996078a696f88ba7ac1c39e3427cee82b9c9675150121a458ecc0a24e325"},
+    {file = "boto3_stubs-1.26.78-py3-none-any.whl", hash = "sha256:0d48657c3f47b6455144020a11dab7d6049737136c5c85c9e07939696785d146"},
 ]
 
 [package.dependencies]
@@ -175,7 +175,7 @@ backup-gateway = ["mypy-boto3-backup-gateway (>=1.26.0,<1.27.0)"]
 backupstorage = ["mypy-boto3-backupstorage (>=1.26.0,<1.27.0)"]
 batch = ["mypy-boto3-batch (>=1.26.0,<1.27.0)"]
 billingconductor = ["mypy-boto3-billingconductor (>=1.26.0,<1.27.0)"]
-boto3 = ["boto3 (==1.26.77)", "botocore (==1.29.77)"]
+boto3 = ["boto3 (==1.26.78)", "botocore (==1.29.78)"]
 braket = ["mypy-boto3-braket (>=1.26.0,<1.27.0)"]
 budgets = ["mypy-boto3-budgets (>=1.26.0,<1.27.0)"]
 ce = ["mypy-boto3-ce (>=1.26.0,<1.27.0)"]
@@ -487,14 +487,14 @@ xray = ["mypy-boto3-xray (>=1.26.0,<1.27.0)"]
 
 [[package]]
 name = "botocore"
-version = "1.29.77"
+version = "1.29.78"
 description = "Low-level, data-driven core of boto 3."
 category = "main"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.29.77-py3-none-any.whl", hash = "sha256:d8aa7bffe2422de282b2d02945b7b45d5fecf00f67b65eebb0b1fa3de1abc6d0"},
-    {file = "botocore-1.29.77.tar.gz", hash = "sha256:9d94a02f2584b52c65fb3cb309fb1b29d6d0c36d69062722b0275c1c382c44c9"},
+    {file = "botocore-1.29.78-py3-none-any.whl", hash = "sha256:656ac8822a1b6c887a8efe1172bcefa9c9c450face26dc39998a249e8c340a23"},
+    {file = "botocore-1.29.78.tar.gz", hash = "sha256:2bee6ed037590ef1e4884d944486232871513915f12a8590c63e3bb6046479bf"},
 ]
 
 [package.dependencies]
@@ -507,14 +507,14 @@ crt = ["awscrt (==0.16.9)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.29.77"
+version = "1.29.78"
 description = "Type annotations and code completion for botocore"
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "botocore_stubs-1.29.77-py3-none-any.whl", hash = "sha256:315ea248f45994aeee888f5c3fe484565bc6fa919406a39ce58bc4a2771c2f8a"},
-    {file = "botocore_stubs-1.29.77.tar.gz", hash = "sha256:8f102b2bb881948bda18c3d4d4bd92d82125c9632ef11311594a2dd6c5981afc"},
+    {file = "botocore_stubs-1.29.78-py3-none-any.whl", hash = "sha256:9eb8e43e7cb74f07cfe8bf7ca680e0ce111bd5d8490ed6bece5e435ac487b403"},
+    {file = "botocore_stubs-1.29.78.tar.gz", hash = "sha256:48a5dd2496e2480bdcc45bdf06407d14680e7330dd3809e404b46b1efc59ecff"},
 ]
 
 [package.dependencies]
@@ -1084,14 +1084,14 @@ files = [
 
 [[package]]
 name = "kubernetes"
-version = "25.3.0"
+version = "24.2.0"
 description = "Kubernetes python client"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "kubernetes-25.3.0-py2.py3-none-any.whl", hash = "sha256:eb42333dad0bb5caf4e66460c6a4a1a36f0f057a040f35018f6c05a699baed86"},
-    {file = "kubernetes-25.3.0.tar.gz", hash = "sha256:213befbb4e5aed95f94950c7eed0c2322fc5a2f8f40932e58d28fdd42d90836c"},
+    {file = "kubernetes-24.2.0-py2.py3-none-any.whl", hash = "sha256:da19d58865cf903a8c7b9c3691a2e6315d583a98f0659964656dfdf645bf7e49"},
+    {file = "kubernetes-24.2.0.tar.gz", hash = "sha256:9900f12ae92007533247167d14cdee949cd8c7721f88b4a7da5f5351da3834cd"},
 ]
 
 [package.dependencies]
@@ -2202,4 +2202,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "be658d9dabbaaf74acb7335eedb0f0dcf40ff9748a33bd53e7653addeaf8aaaa"
+content-hash = "aa22888a439e616bf8b4db9fa918d61e31577b13b438e133fa2a535c3d5425bf"
