@@ -8,7 +8,6 @@ import boto3
 import urllib3
 import yaml
 from kubernetes import client
-
 from kubernetes.client import *
 
 from eksupgrade.utils import get_package_dict
