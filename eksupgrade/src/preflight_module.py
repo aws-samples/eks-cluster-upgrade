@@ -8,12 +8,6 @@ import boto3
 import urllib3
 import yaml
 from kubernetes import client
-
-try:
-    from kubernetes.client import PolicyV1beta1Api as PolicyV1Api
-except ImportError:
-    from kubernetes.client import PolicyV1Api
-
 from kubernetes.client import *
 
 from eksupgrade.utils import get_package_dict
@@ -266,7 +260,7 @@ def pod_security_policies(
     """Check for pod security policies."""
     loading_config(cluster_name, region)
     try:
-        policy_v1_api = PolicyV1Api()
+        policy_v1_api = PolicyV1beta1Api()
         logger.info("Pod Security Policies .....")
         ret = policy_v1_api.list_pod_security_policy(field_selector="metadata.name=eks.privileged")
 
@@ -705,7 +699,7 @@ def pod_disruption_budget(
     loading_config(cluster_name, region)
     logger.info("Fetching Pod Disruption Budget Details....")
     try:
-        policy_v1_api = PolicyV1Api()
+        policy_v1_api = PolicyV1beta1Api()
         ret = policy_v1_api.list_pod_disruption_budget_for_all_namespaces()
         if not ret.items:
             customer_report["pod disruption budget"] = "No Pod Disruption Budget exists in cluster"
