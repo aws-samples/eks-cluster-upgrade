@@ -126,7 +126,12 @@ def get_cluster_version(
         subnet_details(errors, cluster_name, region, report, customer_report)
         cluster_roles(preflight, errors, cluster_name, region, report, customer_report)
         addon_version(errors, cluster_name, region, cluster_details, report, customer_report, pass_vpc)
-        pod_disruption_budget(errors, cluster_name, region, report, customer_report, force_upgrade)
+
+        if (float(update_version) == 1.25 and preflight) or float(update_version) < 1.25:
+            pod_disruption_budget(errors, cluster_name, region, report, customer_report, force_upgrade)
+        else:
+            logger.info("Pod Disruption Budget check disabled due to target version: %s", update_version)
+
         horizontal_auto_scaler(errors, cluster_name, region, report, customer_report)
         cluster_auto_scaler(errors, cluster_name, region, report, customer_report)
         # TODO: Revisit deprecation checks. Disabled due to confusing or misleading results per GH Issue #37.
