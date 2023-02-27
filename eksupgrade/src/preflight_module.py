@@ -8,7 +8,6 @@ import boto3
 import urllib3
 import yaml
 from kubernetes import client
-from kubernetes.client import *
 
 from eksupgrade.utils import get_package_dict
 
@@ -260,9 +259,13 @@ def pod_security_policies(
     """Check for pod security policies."""
     loading_config(cluster_name, region)
     try:
-        policy_v1_api = PolicyV1beta1Api()
-        logger.info("Pod Security Policies .....")
-        ret = policy_v1_api.list_pod_security_policy(field_selector="metadata.name=eks.privileged")
+        try:
+            policy_v1_api = client.PolicyV1beta1Api()
+            logger.info("Pod Security Policies .....")
+            ret = policy_v1_api.list_pod_security_policy(field_selector="metadata.name=eks.privileged")
+        except AttributeError:
+            logger.info("Current kubernetes python client version doesn't support PSP - continuing...")
+            return
 
         if not ret.items:
             customer_report["pod security policy"] = "Pod Security Policy with eks.privileged role doesnt exists."
@@ -699,7 +702,7 @@ def pod_disruption_budget(
     loading_config(cluster_name, region)
     logger.info("Fetching Pod Disruption Budget Details....")
     try:
-        policy_v1_api = PolicyV1beta1Api()
+        policy_v1_api = client.PolicyV1Api()
         ret = policy_v1_api.list_pod_disruption_budget_for_all_namespaces()
         if not ret.items:
             customer_report["pod disruption budget"] = "No Pod Disruption Budget exists in cluster"
