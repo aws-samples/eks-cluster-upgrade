@@ -19,7 +19,7 @@ def test_aws_resource_no_optional() -> None:
     assert aws_dict["arn"] == "abc"
     assert not aws_dict["resource_id"]
     assert not aws_dict["tags"]
-    assert len(aws_dict.keys()) == 3
+    assert len(aws_dict.keys()) == 4
 
 
 def test_aws_resource_optional() -> None:
@@ -30,7 +30,7 @@ def test_aws_resource_optional() -> None:
     assert aws_dict["arn"] == "abc"
     assert aws_dict["resource_id"] == "123"
     assert aws_dict["tags"]["Name"] == "123"
-    assert len(aws_dict.keys()) == 3
+    assert len(aws_dict.keys()) == 4
 
 
 def test_aws_region_resource_no_optional() -> None:
@@ -42,7 +42,7 @@ def test_aws_region_resource_no_optional() -> None:
     assert not aws_dict["resource_id"]
     assert not aws_dict["tags"]
     assert not aws_dict["region"]
-    assert len(aws_dict.keys()) == 4
+    assert len(aws_dict.keys()) == 5
 
 
 def test_aws_region_resource_optional() -> None:
@@ -54,7 +54,7 @@ def test_aws_region_resource_optional() -> None:
     assert aws_dict["resource_id"] == "123"
     assert aws_dict["tags"]["Name"] == "123"
     assert aws_dict["region"] == "us-east-1"
-    assert len(aws_dict.keys()) == 4
+    assert len(aws_dict.keys()) == 5
 
 
 def test_sts_client_region(sts_client) -> None:
