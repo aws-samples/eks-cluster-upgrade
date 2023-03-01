@@ -142,44 +142,6 @@ def enable_disable_autoscaler(asg_name: str, action: str, region: str) -> str:
         return "Something went Wrong auto scaling operation failed"
 
 
-def update_cluster(cluster_name: str, version: str, region: str) -> bool:
-    """Check for cluster update."""
-    eks_client = boto3.client("eks", region_name=region)
-    logger.info(
-        "The Cluster status = %s and version = %s",
-        status_of_cluster(cluster_name, region)[0],
-        status_of_cluster(cluster_name, region)[1],
-    )
-    try:
-        if status_of_cluster(cluster_name, region)[1] == version:
-            logger.info("The %s cluster is already Updated to %s", cluster_name, version)
-            return True
-
-        while True:
-            if (
-                is_cluster_exists(cluster_name, region) == "ACTIVE"
-                and status_of_cluster(cluster_name, region)[1] != version
-            ):
-                eks_client.update_cluster_version(name=cluster_name, version=version)
-                logger.info("The %s Cluster upgrade is initiated and getting updated to %s", cluster_name, version)
-                time.sleep(60)
-
-            if is_cluster_exists(cluster_name, region) == "UPDATING":
-                logger.info("The Cluster %s is Still Updating to %s...", cluster_name, version)
-                time.sleep(20)
-
-            if (
-                is_cluster_exists(cluster_name, region) == "ACTIVE"
-                and status_of_cluster(cluster_name, region)[1] == version
-            ):
-                logger.info("The %s Updated to %s", cluster_name, version)
-                break
-        return True
-    except Exception as e:
-        logger.error("Exception encountered while attempting to update the cluster! Error: %s", e)
-        raise e
-
-
 def worker_terminate(instance_id: str, region: str) -> None:
     """Terminate instance and decreasing the desired capacity whit asg terminate instance."""
     asg_client = boto3.client("autoscaling", region_name=region)

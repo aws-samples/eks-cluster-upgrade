@@ -50,6 +50,7 @@ def eks_cluster(eks_client, cluster_name):
     eks_client.create_cluster(
         name=cluster_name,
         version="1.23",
+        target_version="1.24",
         roleArn=f"arn:aws:iam::123456789012:role/{cluster_name}",
         resourcesVpcConfig={},
     )

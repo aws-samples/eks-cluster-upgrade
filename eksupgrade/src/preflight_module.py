@@ -11,10 +11,27 @@ from kubernetes import client
 
 from eksupgrade.utils import get_package_dict
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .k8s_client import get_default_version, loading_config
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 logger = logging.getLogger(__name__)
+
+CLUSTER_ROLES: List[str] = [
+    "eks:fargate-manager",
+    "eks:node-bootstrapper",
+    "eks:node-manager",
+    "eks:podsecuritypolicy:privileged",
+]
+
+V121_ROLES: List[str] = [
+    "eks:certificate-controller-approver",
+    "eks:cluster-event-watcher",
+    "eks:fargate-scheduler",
+    "eks:k8s-metrics",
+    "eks:nodewatcher",
+    "eks:pod-identity-mutating-webhook",
+]
 
 
 # Function declaration for pre flight checks
@@ -40,7 +57,6 @@ def pre_flight_checks(
         logger.info("IAM role for user verified")
         customer_report["IAM role"] = "IAM role for user verified"
         get_cluster_version(
-            preflight,
             errors,
             cluster_name,
             region,
@@ -64,7 +80,6 @@ def pre_flight_checks(
 
 # Control Plane version listing
 def get_cluster_version(
-    preflight,
     errors,
     cluster_name,
     region,
@@ -123,7 +138,7 @@ def get_cluster_version(
         report["nodegroup_details"] = node_group_details
         customer_report["nodegroup_details"] = node_group_details
         subnet_details(errors, cluster_name, region, report, customer_report)
-        cluster_roles(preflight, errors, cluster_name, region, report, customer_report)
+        cluster_roles(errors, cluster_name, region, report, customer_report)
         addon_version(errors, cluster_name, region, cluster_details, report, customer_report, pass_vpc)
         pod_disruption_budget(errors, cluster_name, region, report, customer_report, force_upgrade)
         horizontal_auto_scaler(errors, cluster_name, region, report, customer_report)
@@ -182,7 +197,6 @@ def subnet_details(
 
 # Verification for required cluster roles
 def cluster_roles(
-    preflight: bool,
     errors: List[str],
     cluster_name: str,
     region: str,
@@ -191,12 +205,6 @@ def cluster_roles(
 ) -> None:
     """Get cluster roles."""
     loading_config(cluster_name, region)
-    cluster_roles_list = get_package_dict("cluster_roles.json")
-
-    if preflight:
-        cluster_roles_list = cluster_roles_list["preflight"]
-    else:
-        cluster_roles_list = cluster_roles_list["postflight"]
 
     try:
         logger.info("Checking important cluster role are present or not .....")
@@ -204,31 +212,21 @@ def cluster_roles(
         not_available: List[str] = []
         customer_report["cluster role"] = []
 
-        for role in cluster_roles_list["roles"]:
+        for role in list(set(CLUSTER_ROLES + V121_ROLES)):
             try:
                 rbac_auth_v1_api = client.RbacAuthorizationV1Api()
-                fs = "metadata.name=" + role
-                res = rbac_auth_v1_api.list_cluster_role(field_selector=fs)
+                _field_selector: str = f"metadata.name={role}"
+                res = rbac_auth_v1_api.list_cluster_role(field_selector=_field_selector)
+
                 if res.items:
                     available.append(role)
                 else:
                     not_available.append(role)
                     logger.warning("Unable to find %s", role)
+                    customer_report["cluster role"].append(f"{role} is not present in the cluster")
             except Exception as error:
                 customer_report["cluster role"].append(f"Some error occurred while checking role for {role}")
                 logger.error("Some error occurred while checking role for %s - Error: %s", role, error)
-
-        if report["cluster"]["version"] in cluster_roles_list.keys():
-            for role in cluster_roles_list[report["cluster"]["version"]].keys():
-                rbac_auth_v1_api = client.RbacAuthorizationV1Api()
-                res = eval(cluster_roles_list[report["cluster"]["version"]][role])
-
-                if not res.items:
-                    customer_report["cluster role"].append(f"{role} is not present in the cluster")
-                    logger.info("%s is not present in the cluster", role)
-                    not_available.append(role)
-                else:
-                    available.append(role)
 
         if not_available:
             customer_report["cluster role"].append("Cluster role verification failed")

@@ -12,7 +12,7 @@ def test_cluster_resource(eks_client, eks_cluster, cluster_name, region) -> None
     assert cluster_dict
     assert isinstance(cluster_dict, dict)
     assert cluster_dict["version"] == "1.23"
-    assert len(cluster_dict.keys()) == 15
+    assert len(cluster_dict.keys()) == 16
     assert cluster_resource.name == cluster_resource.cluster_name
 
 
@@ -97,3 +97,12 @@ def test_cluster_addon_resource_no_cluster(eks_client, eks_cluster, cluster_name
     assert not addon_dict["resource_id"]
     assert not addon_dict["tags"]
     assert len(addon_dict.keys()) == 17
+
+
+def test_cluster_addon_needs_upgrade(eks_client, eks_cluster, cluster_name, region) -> None:
+    """Test the cluster addon resource."""
+    cluster_resource = Cluster.get_cluster(cluster_name, region)
+    addon_resource = ClusterAddon(
+        arn="abc", name="coredns", cluster=cluster_resource, region=region, owner="amazon", publisher="amazon"
+    )
+    assert addon_resource.needs_upgrade

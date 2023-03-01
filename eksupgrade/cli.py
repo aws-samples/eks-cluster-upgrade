@@ -60,6 +60,12 @@ Display the eksupgrade version:
     parser.add_argument("--preflight", action="store_true", default=False, help="Run pre-flight check without upgrade")
     parser.add_argument("--parallel", action="store_true", default=False, help="Upgrade all nodegroups in parallel")
     parser.add_argument(
+        "--latest-addons",
+        action="store_true",
+        default=False,
+        help="Upgrade addons to the latest eligible version instead of default",
+    )
+    parser.add_argument(
         "--log-level", default="INFO", help="The log level to be displayed in the console. Default to: INFO"
     )
     parser.add_argument("--version", action="version", version=f"eksupgrade {__version__}")

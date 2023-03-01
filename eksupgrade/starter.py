@@ -8,6 +8,8 @@ import sys
 import threading
 import time
 
+from .exceptions import ClusterInactiveException
+from .models.eks import Cluster
 from .src.boto_aws import (
     add_autoscaling,
     add_node,
@@ -15,10 +17,7 @@ from .src.boto_aws import (
     get_latest_instance,
     get_num_of_instances,
     get_outdated_asg,
-    is_cluster_exists,
     outdated_lt,
-    status_of_cluster,
-    update_cluster,
     wait_for_ready,
     worker_terminate,
 )
@@ -150,14 +149,14 @@ def main(args) -> None:
         pass_vpc = args.pass_vpc
         max_retry = args.max_retry
         region = args.region
-        present_version = "NAN"
         is_present = False
         forced = args.force
         paralleled = args.parallel
         preflight = args.preflight
+        use_latest_addons = args.latest_addons
 
         # Preflight Logic
-        if not (pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.force)):
+        if not pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.force):
             logger.error("Pre-flight check for cluster %s failed!", cluster_name)
             sys.exit()
         else:
@@ -167,36 +166,29 @@ def main(args) -> None:
 
         # upgrade Logic
         logger.info("The cluster upgrade process has started")
-        if (
-            is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE"
-            or is_cluster_exists(cluster_name=cluster_name, region=region) == "UPDATING"
-        ):
-            present_version = status_of_cluster(cluster_name, region)[1]
-            logger.info("The current version of the cluster was detected as: %s", present_version)
-        else:
-            raise Exception("The cluster is not active")
+
+        target_cluster: Cluster = Cluster.get_cluster(
+            cluster_name=cluster_name, region=region, target_version=to_update, latest_addons=use_latest_addons
+        )
+
+        if not target_cluster.available:
+            raise ClusterInactiveException("The cluster is not active")
+
+        logger.info("The current version of the cluster was detected as: %s", target_cluster.version)
 
         # Checking Cluster is Active or Not Before Making an Update
         start = time.time()
-        if is_cluster_exists(cluster_name=cluster_name, region=region) == "ACTIVE":
-            update_cluster(cluster_name=cluster_name, version=to_update, region=region)
-        time.sleep(5)
-
-        # Making Sure the Cluster is Updated
-        if (
-            status_of_cluster(cluster_name, region)[1] != to_update
-            or status_of_cluster(cluster_name, region)[0] != "ACTIVE"
-        ):
-            update_cluster(cluster_name, to_update, region)
+        if target_cluster.active:
+            target_cluster.update_cluster(wait=True)
 
         # finding the managed autoscaling groups
-
         end = time.time()
         hours, rem = divmod(end - start, 3600)
         minutes, seconds = divmod(rem, 60)
         logger.info("The Time Taken For the Cluster to Upgrade %s:%s:%s", int(hours), int(minutes), seconds)
+
         finding_manged = get_asg_node_groups(cluster_name, region)
-        logger.info("The Manged Node Groups Found are %s", ",".join(finding_manged))
+        logger.info("The Manged Node Groups Found are %s", ",".join(target_cluster.nodegroup_names))
         asg_list = get_asgs(cluster_name, region)
         logger.info("The ASGs Found Are %s", ",".join(asg_list))
 

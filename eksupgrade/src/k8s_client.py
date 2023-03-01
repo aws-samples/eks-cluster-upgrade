@@ -308,7 +308,7 @@ def sort_pods(
 
 @cache
 def get_addon_details(cluster_name: str, addon: str, region: str) -> Dict[str, Any]:
-    """Get addon details which includes its current version"""
+    """Get addon details which includes its current version."""
     eks_client = boto3.client("eks", region_name=region)
     addon_details: Dict[str, Any] = eks_client.describe_addon(clusterName=cluster_name, addonName=addon).get(
         "addon", {}
@@ -332,7 +332,7 @@ def get_addon_update_kwargs(cluster_name: str, addon: str, region: str) -> Dict[
 
 
 def update_eks_addon(cluster_name: str, addon: str, region: str, version: str) -> Dict[str, Any]:
-    """Update `addon` to `version`"""
+    """Update `addon` to `version`."""
     logger.info("Updating the EKS cluster's %s add-on version via the EKS API...", addon)
     eks_client = boto3.client("eks", region_name=region)
     update_kwargs: Dict[str, Any] = get_addon_update_kwargs(cluster_name, addon, region)
