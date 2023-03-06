@@ -15,3 +15,7 @@ class ClusterException(EksException):
 
 class ClusterInactiveException(ClusterException):
     """Define the exception to raise when a cluster is considered inactive (or doesn't exist)."""
+
+
+class EksUpgradeNotImplementedError(BaseEksUpgradeException, NotImplementedError):
+    """Define the Not Implemented exception for eksupgrade."""

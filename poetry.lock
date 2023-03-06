@@ -101,18 +101,18 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "boto3"
-version = "1.26.81"
+version = "1.26.83"
 description = "The AWS SDK for Python"
 category = "main"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.26.81-py3-none-any.whl", hash = "sha256:a631ce2d22662f326cdf121967b53c251338e4ae7cdfa166c11a31e94a8b6a60"},
-    {file = "boto3-1.26.81.tar.gz", hash = "sha256:898fa38387e2f5a9136aec6cf9caa0a44ddbf78f1c4aaa33f7b1611ac44b4a4d"},
+    {file = "boto3-1.26.83-py3-none-any.whl", hash = "sha256:c07ed643aa72940f92b2c807591e1ba803c1b79d20ca129a6f8cccf846c40ff8"},
+    {file = "boto3-1.26.83.tar.gz", hash = "sha256:df81bfa4f8dfb3a645c43b7fd317f48df3e7fa402115ef21fc2f6430d73a1821"},
 ]
 
 [package.dependencies]
-botocore = ">=1.29.81,<1.30.0"
+botocore = ">=1.29.83,<1.30.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.6.0,<0.7.0"
 
@@ -121,14 +121,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.26.81"
-description = "Type annotations for boto3 1.26.81 generated with mypy-boto3-builder 7.12.4"
+version = "1.26.83"
+description = "Type annotations for boto3 1.26.83 generated with mypy-boto3-builder 7.12.5"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "boto3-stubs-1.26.81.tar.gz", hash = "sha256:e44fc3e4b326777b68ea27d6e3d7228331051d3a7b05bb4fd829d7b8069be4a5"},
-    {file = "boto3_stubs-1.26.81-py3-none-any.whl", hash = "sha256:2d7ee70832b6d1a4c9192dd5f22d78fe95d1c0ffe830032bd73700c636dba96b"},
+    {file = "boto3-stubs-1.26.83.tar.gz", hash = "sha256:5ed771e6544086b09ab8041c7247b8e17a65987d1ec2965f3ce2795f4e8a9a76"},
+    {file = "boto3_stubs-1.26.83-py3-none-any.whl", hash = "sha256:7b8df22dd5e1d6e891957dde4eb1c9055bddf88c29912c20dfc2cb4024aff477"},
 ]
 
 [package.dependencies]
@@ -176,7 +176,7 @@ backup-gateway = ["mypy-boto3-backup-gateway (>=1.26.0,<1.27.0)"]
 backupstorage = ["mypy-boto3-backupstorage (>=1.26.0,<1.27.0)"]
 batch = ["mypy-boto3-batch (>=1.26.0,<1.27.0)"]
 billingconductor = ["mypy-boto3-billingconductor (>=1.26.0,<1.27.0)"]
-boto3 = ["boto3 (==1.26.81)", "botocore (==1.29.81)"]
+boto3 = ["boto3 (==1.26.83)", "botocore (==1.29.83)"]
 braket = ["mypy-boto3-braket (>=1.26.0,<1.27.0)"]
 budgets = ["mypy-boto3-budgets (>=1.26.0,<1.27.0)"]
 ce = ["mypy-boto3-ce (>=1.26.0,<1.27.0)"]
@@ -489,14 +489,14 @@ xray = ["mypy-boto3-xray (>=1.26.0,<1.27.0)"]
 
 [[package]]
 name = "botocore"
-version = "1.29.81"
+version = "1.29.83"
 description = "Low-level, data-driven core of boto 3."
 category = "main"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.29.81-py3-none-any.whl", hash = "sha256:b0b9f4b784e6e58e52f6756bd28d32240016377659adc04e0a0a12df2a90e3f9"},
-    {file = "botocore-1.29.81.tar.gz", hash = "sha256:b140c865fce64097c54cba37420c27f24b26cdec0fc00ce83ad439d3bdb053e1"},
+    {file = "botocore-1.29.83-py3-none-any.whl", hash = "sha256:b7df2a1413f32992f350dd66bc5c8747b7211b776cf6500f64aebba7eddbe4f0"},
+    {file = "botocore-1.29.83.tar.gz", hash = "sha256:2e3d215b94df4e4c0ce3da250db43fb39ef7834f8f8fd19e5b223b35edb4d073"},
 ]
 
 [package.dependencies]
@@ -509,14 +509,14 @@ crt = ["awscrt (==0.16.9)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.29.81"
+version = "1.29.82"
 description = "Type annotations and code completion for botocore"
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "botocore_stubs-1.29.81-py3-none-any.whl", hash = "sha256:f351120e07115d34692d63a28d47a8867f2e8f43e1736e9a345ad3abb2a15843"},
-    {file = "botocore_stubs-1.29.81.tar.gz", hash = "sha256:4b2d6020aea659f92826d2ef778beb49179918989ff1383a186c6ef0f97afb5c"},
+    {file = "botocore_stubs-1.29.82-py3-none-any.whl", hash = "sha256:c6d8b7a6a81ca8668534d6863f59b217b3cbc65892263c6bac6961e63ca3b3f1"},
+    {file = "botocore_stubs-1.29.82.tar.gz", hash = "sha256:fbbc3a983efdf051517765f5f42d3bca1d8eccf80f01185c27cdd5edb0d9d493"},
 ]
 
 [package.dependencies]
@@ -989,14 +989,14 @@ gitdb = ">=4.0.1,<5"
 
 [[package]]
 name = "google-auth"
-version = "2.16.1"
+version = "2.16.2"
 description = "Google Authentication Library"
 category = "main"
 optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*"
 files = [
-    {file = "google-auth-2.16.1.tar.gz", hash = "sha256:5fd170986bce6bfd7bb5c845c4b8362edb1e0cba901e062196e83f8bb5d5d32c"},
-    {file = "google_auth-2.16.1-py2.py3-none-any.whl", hash = "sha256:75d76ea857df65938e1f71dcbcd7d0cd48e3f80b34b8870ba229c9292081f7ef"},
+    {file = "google-auth-2.16.2.tar.gz", hash = "sha256:07e14f34ec288e3f33e00e2e3cc40c8942aa5d4ceac06256a28cd8e786591420"},
+    {file = "google_auth-2.16.2-py2.py3-none-any.whl", hash = "sha256:2fef3cf94876d1a0e204afece58bb4d83fb57228aaa366c64045039fda6770a2"},
 ]
 
 [package.dependencies]

@@ -5,16 +5,20 @@ import logging
 from abc import ABC
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 import boto3
 
 if TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_autoscaling.client import AutoScalingClient
-    from mypy_boto3_sts import STSClient
+    from mypy_boto3_ec2.client import EC2Client
+    from mypy_boto3_eks.client import EKSClient
+    from mypy_boto3_sts.client import STSClient
 else:
-    STSClient = object
     AutoScalingClient = object
+    EC2Client = object
+    EKSClient = object
+    STSClient = object
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +57,12 @@ class AwsResource(BaseResource, ABC):
 
     arn: str
     resource_id: str = ""
-    tags: Dict[str, str] = field(default_factory=lambda: ({}))
+    tags: Dict[str, Union[str, bool]] = field(default_factory=lambda: ({}))
     errors: List[Dict[str, Any]] = field(default_factory=lambda: ([]))
 
-    def _get_boto_client(self, service: str, **kwargs):
+    def _get_boto_client(
+        self, service: Literal["autoscaling", "ec2", "eks", "sts"], **kwargs
+    ) -> AutoScalingClient | EC2Client | EKSClient | STSClient:
         """Get a boto client."""
         return boto3.client(service, **kwargs)
 

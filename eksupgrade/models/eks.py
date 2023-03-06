@@ -17,12 +17,12 @@ from packaging.version import parse as parse_version
 from .base import AwsRegionResource
 
 if TYPE_CHECKING:  # pragma: no cover
+    from mypy_boto3_autoscaling.type_defs import AutoScalingGroupsTypeTypeDef, AutoScalingGroupTypeDef
     from mypy_boto3_eks.client import EKSClient
     from mypy_boto3_eks.literals import ResolveConflictsType
     from mypy_boto3_eks.type_defs import (
         AddonInfoTypeDef,
         AddonTypeDef,
-        AutoScalingGroupsTypeTypeDef,
         ClusterTypeDef,
         DescribeAddonResponseTypeDef,
         DescribeClusterResponseTypeDef,
@@ -30,6 +30,7 @@ if TYPE_CHECKING:  # pragma: no cover
         ListNodegroupsResponseTypeDef,
         NodegroupResourcesTypeDef,
         NodegroupTypeDef,
+        TaintTypeDef,
         UpdateAddonResponseTypeDef,
         UpdateClusterVersionResponseTypeDef,
         UpdateTypeDef,
@@ -52,6 +53,8 @@ else:
     NodegroupResourcesTypeDef = object
     WaiterConfigTypeDef = object
     AutoScalingGroupsTypeTypeDef = object
+    AutoScalingGroupTypeDef = object
+    TaintTypeDef = object
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +109,7 @@ class AutoscalingGroup(AwsRegionResource):
     name: str = ""
     launch_configuration_name: str = ""
     launch_template: Dict[str, str] = field(default_factory=dict)
-    mixed_instance_policy: List[Dict[str, Any]] = field(default_factory=list)
+    mixed_instances_policy: Dict[str, Any] = field(default_factory=dict)
     min_size: int = 0
     max_size: int = 0
     desired_capacity: int = 0
@@ -119,7 +122,7 @@ class AutoscalingGroup(AwsRegionResource):
     health_check_grace_period: int = 0
     instances: List[Dict[str, Any]] = field(default_factory=list)
     placement_group: str = ""
-    created_at: datetime.datetime = datetime.datetime.now()
+    created_time: datetime.datetime = datetime.datetime.now()
     suspended_processes: List[Dict[str, str]] = field(default_factory=list)
     vpc_zone_identifier: str = ""
     status: str = ""
@@ -128,11 +131,14 @@ class AutoscalingGroup(AwsRegionResource):
     service_linked_role_arn: str = ""
     max_instance_lifetime: int = 0
     capacity_rebalance: bool = False
+    warm_pool_configuration: Dict[str, Any] = field(default_factory=dict)
     warm_pool_size: int = 0
     context: str = ""
     desired_capacity_type: str = ""
     default_instance_warmup: int = 0
     traffic_sources: List[Dict[str, str]] = field(default_factory=list)
+    enabled_metrics: List[Dict[str, str]] = field(default_factory=list)
+    asg_tags: List[Dict[str, str]] = field(default_factory=list)
 
     def __repr__(self) -> str:  # pragma: no cover
         """Return the string representation of a EKS Managed Node Group."""
@@ -144,51 +150,67 @@ class AutoscalingGroup(AwsRegionResource):
         return self.name
 
     @classmethod
-    def get_nodegroup(cls, autoscaling_group_name: str, cluster: Cluster, region: str):
+    def get(
+        cls,
+        cluster: Cluster,
+        region: str,
+        autoscaling_group_name: str = "",
+        asg_data: Optional[AutoScalingGroupTypeDef] = None,
+    ):
         """Get the cluster's manage nodegroup details and build a ManagedNodeGroup object."""
         logger.info("Getting cluster autoscaling group details...")
-        _temp_asg = cls(arn="", region=region)
-        response: AutoScalingGroupsTypeTypeDef = _temp_asg.autoscaling_client.describe_auto_scaling_groups(
-            AutoScalingGroupNames=[autoscaling_group_name],
-        )
-        nodegroup_data: NodegroupTypeDef = response["AutoScalingGroups"]
-        version: str = nodegroup_data.get("version", "")
-        release_version: str = nodegroup_data.get("releaseVersion", "")
+
+        if not asg_data:
+            response: AutoScalingGroupsTypeTypeDef = cluster.autoscaling_client.describe_auto_scaling_groups(
+                AutoScalingGroupNames=[autoscaling_group_name],
+            )
+            asg_data = response["AutoScalingGroups"][0]
+
+        status: str = asg_data.get("Status", "")
         logger.info(
-            "Managed Node Group: %s - Version: %s - Release Version: %s - Cluster: %s",
-            node_group,
-            version,
-            release_version,
+            "Autoscaling Group: %s - Status: %s - Cluster: %s",
+            autoscaling_group_name,
+            status,
             cluster.name,
         )
-        _resources: NodegroupResourcesTypeDef = nodegroup_data.get("resources", {})
 
         return cls(
             cluster=cluster,
-            version=version,
-            release_version=release_version,
-            arn=nodegroup_data.get("nodegroupArn", ""),
-            name=nodegroup_data.get("nodegroupName", ""),
-            status=nodegroup_data.get("status", ""),
-            created_at=nodegroup_data.get("createdAt", datetime.datetime.now()),
-            modified_at=nodegroup_data.get("modifiedAt", datetime.datetime.now()),
-            tags=nodegroup_data.get("tags", {}),
+            launch_configuration_name=asg_data.get("LaunchConfigurationName", ""),
+            launch_template=asg_data.get("LaunchTemplate", {}),
+            mixed_instances_policy=asg_data.get("MixedInstancesPolicy", {}),
+            name=asg_data.get("AutoScalingGroupName", ""),
+            status=status,
+            arn=asg_data.get("AutoScalingGroupARN", ""),
+            min_size=asg_data.get("MinSize", 0),
+            max_size=asg_data.get("MaxSize", 0),
+            desired_capacity=asg_data.get("DesiredCapacity", 0),
+            predicted_capacity=asg_data.get("PredictedCapacity", 0),
+            default_cooldown=asg_data.get("DefaultCooldown", 0),
+            created_time=asg_data.get("CreatedTime", datetime.datetime.now()),
+            availability_zones=asg_data.get("AvailabilityZones", []),
+            load_balancer_names=asg_data.get("LoadBalancerNames", []),
+            target_group_arns=asg_data.get("TargetGroupARNs", []),
+            health_check_type=asg_data.get("HealthCheckType", ""),
+            instances=asg_data.get("Instances", []),
+            health_check_grace_period=asg_data.get("HealthCheckGracePeriod", 0),
+            suspended_processes=asg_data.get("SuspendedProcesses", []),
+            placement_group=asg_data.get("PlacementGroup", ""),
+            vpc_zone_identifier=asg_data.get("VPCZoneIdentifier", ""),
+            enabled_metrics=asg_data.get("EnabledMetrics", []),
+            termination_policies=asg_data.get("TerminationPolicies", []),
+            asg_tags=asg_data.get("Tags", []),
             region=region,
-            node_role=nodegroup_data.get("nodeRole", ""),
-            capacity_type=nodegroup_data.get("capacityType", ""),
-            ami_type=nodegroup_data.get("amiType", ""),
-            instance_types=nodegroup_data.get("instanceTypes", []),
-            subnets=nodegroup_data.get("subnets", []),
-            disk_size=nodegroup_data.get("diskSize", 0),
-            labels=nodegroup_data.get("labels", {}),
-            taints=nodegroup_data.get("taints", []),
-            remote_access_sg=_resources.get("remoteAccessSecurityGroup", ""),
-            update_config=nodegroup_data.get("updateConfig", {}),
-            launch_template=nodegroup_data.get("launchTemplate", {}),
-            autoscaling_groups=_resources.get("autoScalingGroups", []),
-            scaling_config=nodegroup_data.get("scalingConfig", {}),
-            remote_access=nodegroup_data.get("remoteAccess", {}),
-            health=nodegroup_data.get("health", {}),
+            new_instances_protected_from_scale_in=asg_data.get("NewInstancesProtectedFromScaleIn", False),
+            service_linked_role_arn=asg_data.get("ServiceLinkedRoleARN", ""),
+            max_instance_lifetime=asg_data.get("MaxInstanceLifetime", ""),
+            capacity_rebalance=asg_data.get("CapacityRebalance", ""),
+            warm_pool_size=asg_data.get("WarmPoolSize", []),
+            warm_pool_configuration=asg_data.get("WarmPoolConfiguration", []),
+            context=asg_data.get("Context", ""),
+            desired_capacity_type=asg_data.get("DesiredCapacityType", ""),
+            default_instance_warmup=asg_data.get("DefaultInstanceWarmup", 0),
+            traffic_sources=asg_data.get("TrafficSources", []),
         )
 
 
@@ -238,11 +260,10 @@ class ManagedNodeGroup(EksResource):
         return [asg["name"] for asg in self.autoscaling_groups]
 
     @classmethod
-    def get_nodegroup(cls, node_group: str, cluster: Cluster, region: str):
+    def get(cls, node_group: str, cluster: Cluster, region: str):
         """Get the cluster's manage nodegroup details and build a ManagedNodeGroup object."""
         logger.info("Getting cluster managed nodegroup details...")
-        _temp_nodegroup = cls(arn="", region=region)
-        response: DescribeNodegroupResponseTypeDef = _temp_nodegroup.eks_client.describe_nodegroup(
+        response: DescribeNodegroupResponseTypeDef = cluster.eks_client.describe_nodegroup(
             nodegroupName=node_group,
             clusterName=cluster.name,
         )
@@ -380,11 +401,10 @@ class ClusterAddon(EksResource):
         return self.name
 
     @classmethod
-    def get_addon(cls, addon: str, cluster: Cluster, region: str):
+    def get(cls, addon: str, cluster: Cluster, region: str):
         """Get the cluster addon details and build a ClusterAddon object."""
         logger.debug("Getting cluster addon details...")
-        _temp_cluster = cls(arn="", region=region)
-        response: DescribeAddonResponseTypeDef = _temp_cluster.eks_client.describe_addon(
+        response: DescribeAddonResponseTypeDef = cluster.eks_client.describe_addon(
             addonName=addon,
             clusterName=cluster.name,
         )
@@ -427,12 +447,11 @@ class ClusterAddon(EksResource):
         self,
         version: str = "",
         resolve_conflicts: ResolveConflictsType = "OVERWRITE",
-        latest: bool = False,
         wait: bool = False,
     ) -> UpdateTypeDef:
         """Update the addon to the target version."""
-        logger.info("Updating addon: %s from version: %s to version: %s", self.name, self.version, self.default_version)
-        version = version or self.latest_version if latest else self.default_version
+        logger.info("Updating addon: %s from version: %s to version: %s", self.name, self.version, self.target_version)
+        version = version or self.target_version
         update_response: UpdateAddonResponseTypeDef = self.eks_client.update_addon(
             clusterName=self.cluster.name,
             addonName=self.name,
@@ -454,16 +473,21 @@ class ClusterAddon(EksResource):
         return update_response_body
 
     @cached_property
-    def available_versions(self) -> AddonInfoTypeDef:
+    def available_versions_data(self) -> AddonInfoTypeDef:
         """Get target addon versions."""
         return next(item for item in self.cluster.available_addon_versions if item.get("addonName", "") == self.name)
+
+    @cached_property
+    def available_versions(self) -> List[str]:
+        """Return the list of available versions."""
+        return [item.get("addonVersion", "") for item in self.available_versions_data.get("addonVersions", [])]
 
     @cached_property
     def default_version(self) -> str:
         """Get the EKS default version of the addon."""
         return next(
             item.get("addonVersion", "")
-            for item in self.available_versions.get("addonVersions", [])
+            for item in self.available_versions_data.get("addonVersions", [])
             if item.get("compatibilities", [])[0].get("defaultVersion", False) is True
         )
 
@@ -473,9 +497,14 @@ class ClusterAddon(EksResource):
         return sorted(self.available_versions, reverse=True, key=parse_version)[0]
 
     @property
+    def target_version(self) -> str:
+        """Return the target version."""
+        return self.latest_version if self.cluster.latest_addons else self.default_version
+
+    @property
     def needs_upgrade(self) -> bool:
         """Determine whether or not this addon should be upgraded."""
-        return parse_version(self.version) < parse_version(self.default_version)
+        return parse_version(self.version) < parse_version(self.target_version)
 
     def wait_for_active(self, delay: int = 30, max_attempts: int = 80):
         """Wait for the addon to become active."""
@@ -593,7 +622,7 @@ class Cluster(EksResource):
 
         """
         logger.debug("Fetching Cluster Addons...")
-        return [ClusterAddon.get_addon(addon, self, self.region) for addon in self.current_addons]
+        return [ClusterAddon.get(addon, self, self.region) for addon in self.current_addons]
 
     @cached_property
     def needs_upgrade(self) -> bool:
@@ -737,10 +766,11 @@ class Cluster(EksResource):
         """Whether or not the cluster exists and is active."""
         return self.status == "UPDATING"
 
-    def get_asgs(self) -> List[str]:
-        """Get a list of ASGs by cluster and region.
+    @cached_property
+    def autoscaling_groups(self) -> List[AutoscalingGroup]:
+        """Get the list of AutoScaling Groups (ASGs).
 
-        We get a list of ASGs (auto scaling groups) which will mach our format
+        We get a list of ASGs which will match the format
         "kubernetes.io/cluster/{cluster_name}"
         and returns an empty list if none are found
 
@@ -749,7 +779,13 @@ class Cluster(EksResource):
         response = self.autoscaling_client.describe_auto_scaling_groups(
             Filters=[{"Name": "tag-key", "Values": [cluster_tag]}]
         ).get("AutoScalingGroups", [])
-        return [asg["AutoScalingGroupName"] for asg in response]
+        logger.info("response!")
+        print("region: ", self.region)
+        return [AutoscalingGroup.get(asg_data=asg, region=self.region, cluster=self) for asg in response]
+
+    def get_asg_names(self) -> List[str]:
+        """Get the autoscaling group names."""
+        return [asg.name for asg in self.autoscaling_groups]
 
     @cached_property
     def available_addon_versions(self) -> List[AddonInfoTypeDef]:
@@ -769,26 +805,30 @@ class Cluster(EksResource):
     def nodegroups(self) -> List[ManagedNodeGroup]:
         """Get the cluster's associated nodegroups."""
         return [
-            ManagedNodeGroup.get_nodegroup(node_group=nodegroup, cluster=self, region=self.region)
+            ManagedNodeGroup.get(node_group=nodegroup, cluster=self, region=self.region)
             for nodegroup in self.nodegroup_names
         ]
 
     @classmethod
-    def get_cluster(cls, cluster_name: str, region: str, target_version: str = "", latest_addons: bool = False):
+    def get(cls, cluster_name: str, region: str, target_version: str = "", latest_addons: bool = False):
         """Get the cluster details and build a Cluster.
 
         Arguments:
             cluster_name: The name the of the cluster.
             region: The AWS region where the cluster resides.
             target_version: The target cluster version of this upgrade.
-                Defaults to: The current cluster version + 1 minor (e.g. current cluster: `1.24` will target version: `1.25`)
+                Defaults to: The current cluster version + 1 minor
+                    (e.g. current cluster: `1.24` will target version: `1.25`).
+            latest_addons: Whether or not to target the latest versions of addons
+                available versus the default versions.
+                Defaults to: `False`.
 
         Returns:
             Cluster: The requested EKS cluster object.
 
         """
         logger.debug("Getting cluster details...")
-        eks_client = boto3.client("eks", region_name=region)
+        eks_client: EKSClient = boto3.client("eks", region_name=region)
 
         response: DescribeClusterResponseTypeDef = eks_client.describe_cluster(
             name=cluster_name,

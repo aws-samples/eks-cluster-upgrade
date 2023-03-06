@@ -7,7 +7,7 @@ from eksupgrade.models.eks import Cluster, ClusterAddon, requires_cluster
 
 def test_cluster_resource(eks_client, eks_cluster, cluster_name, region) -> None:
     """Test the cluster resource."""
-    cluster_resource = Cluster.get_cluster(cluster_name, region)
+    cluster_resource = Cluster.get(cluster_name, region)
     cluster_dict = cluster_resource.to_dict()
     assert cluster_dict
     assert isinstance(cluster_dict, dict)
@@ -18,7 +18,7 @@ def test_cluster_resource(eks_client, eks_cluster, cluster_name, region) -> None
 
 def test_cluster_resource_eks_client(eks_client, eks_cluster, cluster_name, region) -> None:
     """Test the cluster resource."""
-    cluster_resource = Cluster.get_cluster(cluster_name, region)
+    cluster_resource = Cluster.get(cluster_name, region)
 
     assert cluster_resource.eks_client
     assert cluster_resource.eks_client.meta.region_name == "us-east-1"
@@ -26,14 +26,14 @@ def test_cluster_resource_eks_client(eks_client, eks_cluster, cluster_name, regi
 
 def test_cluster_resource_core_client(eks_client, eks_cluster, cluster_name, region) -> None:
     """Test the cluster resource."""
-    cluster_resource = Cluster.get_cluster(cluster_name, region)
+    cluster_resource = Cluster.get(cluster_name, region)
     assert isinstance(cluster_resource.core_api_client, CoreV1Api)
     assert isinstance(cluster_resource.core_api_client.api_client, ApiClient)
 
 
 def test_cluster_addon_resource(eks_client, eks_cluster, cluster_name, region) -> None:
     """Test the cluster addon resource."""
-    cluster_resource = Cluster.get_cluster(cluster_name, region)
+    cluster_resource = Cluster.get(cluster_name, region)
     addon_resource = ClusterAddon(
         arn="abc", name="coredns", cluster=cluster_resource, region=region, owner="amazon", publisher="amazon"
     )
@@ -51,7 +51,7 @@ def test_cluster_addon_resource(eks_client, eks_cluster, cluster_name, region) -
 
 def test_cluster_addon_resource_update_kwargs(eks_client, eks_cluster, cluster_name, region) -> None:
     """Test the cluster addon resource."""
-    cluster_resource = Cluster.get_cluster(cluster_name, region)
+    cluster_resource = Cluster.get(cluster_name, region)
     addon_resource = ClusterAddon(
         arn="abc", name="coredns", cluster=cluster_resource, region=region, owner="amazon", publisher="amazon"
     )
@@ -79,7 +79,7 @@ def test_cluster_addon_resource_update_kwargs(eks_client, eks_cluster, cluster_n
 #     assert decorator_test(addon_resource) is None
 
 #     # Validate with populated cluster.
-#     addon_resource.cluster = Cluster.get_cluster(cluster_name, region)
+#     addon_resource.cluster = Cluster.get(cluster_name, region)
 #     assert addon_resource.cluster.name
 #     assert decorator_test(addon_resource)
 
