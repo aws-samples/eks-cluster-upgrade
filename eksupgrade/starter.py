@@ -29,7 +29,6 @@ from .src.k8s_client import (
     find_node,
     is_cluster_auto_scaler_present,
     unschedule_old_nodes,
-    update_addons,
 )
 from .src.latest_ami import get_latest_ami
 from .src.preflight_module import pre_flight_checks
@@ -167,7 +166,7 @@ def main(args) -> None:
         # upgrade Logic
         logger.info("The cluster upgrade process has started")
 
-        target_cluster: Cluster = Cluster.get_cluster(
+        target_cluster: Cluster = Cluster.get(
             cluster_name=cluster_name, region=region, target_version=to_update, latest_addons=use_latest_addons
         )
 
@@ -202,7 +201,7 @@ def main(args) -> None:
         start_time = time.time()
         start = time.time()
         logger.info("The Addons Upgrade Started At %s", str(start_time))
-        update_addons(cluster_name=cluster_name, version=to_update, vpc_pass=pass_vpc, region_name=region)
+        target_cluster.upgrade_addons(wait=True)
         end = time.time()
         hours, rem = divmod(end - start, 3600)
         minutes, seconds = divmod(rem, 60)

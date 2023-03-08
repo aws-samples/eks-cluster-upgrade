@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import datetime
 import logging
+import re
 from abc import ABC
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 import boto3
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
+from packaging.version import Version
 from packaging.version import parse as parse_version
 
 from .base import AwsRegionResource
@@ -30,7 +32,6 @@ if TYPE_CHECKING:  # pragma: no cover
         ListNodegroupsResponseTypeDef,
         NodegroupResourcesTypeDef,
         NodegroupTypeDef,
-        TaintTypeDef,
         UpdateAddonResponseTypeDef,
         UpdateClusterVersionResponseTypeDef,
         UpdateTypeDef,
@@ -54,7 +55,6 @@ else:
     WaiterConfigTypeDef = object
     AutoScalingGroupsTypeTypeDef = object
     AutoScalingGroupTypeDef = object
-    TaintTypeDef = object
 
 logger = logging.getLogger(__name__)
 
@@ -432,7 +432,7 @@ class ClusterAddon(EksResource):
         )
 
     @cached_property
-    def _addon_update_kwargs(self) -> Dict[str, Any]:
+    def _addon_update_kwargs(self) -> dict[str, Any]:
         """Get kwargs for subsequent update to addon."""
         kwargs: Dict[str, Any] = {}
 
@@ -448,29 +448,40 @@ class ClusterAddon(EksResource):
         version: str = "",
         resolve_conflicts: ResolveConflictsType = "OVERWRITE",
         wait: bool = False,
-    ) -> UpdateTypeDef:
+    ) -> list[UpdateTypeDef]:
         """Update the addon to the target version."""
-        logger.info("Updating addon: %s from version: %s to version: %s", self.name, self.version, self.target_version)
-        version = version or self.target_version
-        update_response: UpdateAddonResponseTypeDef = self.eks_client.update_addon(
-            clusterName=self.cluster.name,
-            addonName=self.name,
-            addonVersion=version,
-            resolveConflicts=resolve_conflicts,
-            **self._addon_update_kwargs,
-        )
-        update_response_body: UpdateTypeDef = update_response["update"]
-        _update_errors = update_response_body.get("errors", [])
+        responses: list[UpdateTypeDef] = []
+        if self.name == "vpc-cni":
+            versions: list[str] = self.step_upgrade_versions
+            wait = True
+        else:
+            versions = [version or self.target_version]
 
-        if _update_errors:
-            logger.error(
-                "Errors encountered while attempting to update addon: %s - Errors: %s", self.name, _update_errors
+        for version in versions:
+            logger.info("Updating addon: %s from original version: %s to version: %s", self.name, self.version, version)
+            update_response: UpdateAddonResponseTypeDef = self.eks_client.update_addon(
+                clusterName=self.cluster.name,
+                addonName=self.name,
+                addonVersion=version,
+                resolveConflicts=resolve_conflicts,
+                **self._addon_update_kwargs,
             )
-            self.errors += _update_errors
-        elif wait:
-            self.wait_for_active()
+            update_response_body: UpdateTypeDef = update_response["update"]
+            _update_errors = update_response_body.get("errors", [])
 
-        return update_response_body
+            _update_id: str = update_response_body.get("id", "")
+            _update_status: str = update_response_body.get("status", "")
+            logger.info("Updating addon: %s - ID: %s - Status: %s", self.name, _update_id, _update_status)
+            responses.append(update_response_body)
+
+            if _update_errors:
+                logger.error(
+                    "Errors encountered while attempting to update addon: %s - Errors: %s", self.name, _update_errors
+                )
+                self.errors += _update_errors
+            elif wait:
+                self.wait_for_active()
+        return responses
 
     @cached_property
     def available_versions_data(self) -> AddonInfoTypeDef:
@@ -478,7 +489,7 @@ class ClusterAddon(EksResource):
         return next(item for item in self.cluster.available_addon_versions if item.get("addonName", "") == self.name)
 
     @cached_property
-    def available_versions(self) -> List[str]:
+    def available_versions(self) -> list[str]:
         """Return the list of available versions."""
         return [item.get("addonVersion", "") for item in self.available_versions_data.get("addonVersions", [])]
 
@@ -492,21 +503,94 @@ class ClusterAddon(EksResource):
         )
 
     @property
+    def minors_to_target(self) -> list[int]:
+        """Return the list of minor revisions to upgrade target."""
+        return list(range(self.semantic_version.minor, self._target_version_semver.minor + 1))
+
+    @cached_property
+    def sorted_versions(self) -> list[str]:
+        """Return the latest version."""
+        return sorted(self.available_versions, reverse=True, key=parse_version)
+
+    @cached_property
+    def semantic_version(self) -> Version:
+        """Return the current version without eks platform details in the string."""
+        return Version(re.sub(r"-eksbuild.*", "", self.version))
+
+    @property
+    def semantic_versions(self) -> list[Version]:
+        """Return the list of semantic versions sorted with latest first."""
+        return [Version(re.sub(r"-eksbuild.*", "", version)) for version in self.sorted_versions]
+
+    @property
+    def step_upgrade_versions(self) -> list[str]:
+        """Return the list of semantic versions to target for step upgrade by minor."""
+        versions: List[str] = []
+        for minor in self.minors_to_target:
+            version: Version = self.get_version_by_minor(minor)
+            full_version: str = self.get_full_version_str(version)
+            versions.append(full_version)
+        return versions
+
+    @property
+    def _target_version(self) -> str:
+        """Return the target version."""
+        return self.latest_version if self.cluster.latest_addons else self.default_version
+
+    @property
+    def _target_version_semver(self) -> Version:
+        """Return the target version."""
+        return Version(re.sub(r"-eksbuild.*", "", self._target_version))
+
+    @property
+    def within_target_minor(self) -> bool:
+        """Determine if the current version is within +1 of the minor target version."""
+        if self._target_version_semver.minor in (self.semantic_version.minor, self.semantic_version.minor + 1):
+            return True
+        return False
+
+    def get_version_by_minor(self, minor: int) -> Version:
+        """Return the semantic version based on the input version."""
+        return [item for item in self.semantic_versions if item.minor == minor][0]
+
+    def get_full_version_str(self, semantic_version: Version) -> str:
+        """Return the complete version string based on the semantic version."""
+        return next(item for item in self.sorted_versions if item.startswith(f"v{str(semantic_version)}"))
+
+    @property
+    def next_minor_semver(self) -> Version:
+        """Return the next minor version's semantic version."""
+        return self.get_version_by_minor(minor=self.semantic_version.minor + 1)
+
+    @property
+    def next_minor(self) -> str:
+        """Return the next minor's complete version string."""
+        return self.get_full_version_str(self.next_minor_semver)
+
+    @property
     def latest_version(self) -> str:
         """Return the latest version."""
-        return sorted(self.available_versions, reverse=True, key=parse_version)[0]
+        return self.sorted_versions[0]
 
     @property
     def target_version(self) -> str:
         """Return the target version."""
-        return self.latest_version if self.cluster.latest_addons else self.default_version
+        # If VPC CNI Add-on, use graduated upgrade by single minor version.
+        if self.name == "vpc-cni" and not self.within_target_minor:
+            logger.info(
+                "VPC CNI will target version: %s instead of %s because it's not within +1 or current minor...",
+                self.next_minor,
+                self._target_version,
+            )
+            return self.next_minor
+        return self._target_version
 
     @property
     def needs_upgrade(self) -> bool:
         """Determine whether or not this addon should be upgraded."""
         return parse_version(self.version) < parse_version(self.target_version)
 
-    def wait_for_active(self, delay: int = 30, max_attempts: int = 80):
+    def wait_for_active(self, delay: int = 30, max_attempts: int = 80) -> None:
         """Wait for the addon to become active."""
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, addonName=self.name, WaiterConfig=waiter_config)
@@ -663,11 +747,8 @@ class Cluster(EksResource):
         """Upgrade all cluster addons."""
         upgrade_details: Dict[str, Any] = {}
         for addon in self.upgradable_addons:
-            _update_response: UpdateTypeDef = addon.update(wait=wait)
-            _update_id: str = _update_response.get("id", "")
-            _update_status: str = _update_response.get("status", "")
-            logger.info("Updating addon: %s - ID: %s - Status: %s", addon.name, _update_id, _update_status)
-            upgrade_details[addon.name] = _update_response
+            _update_responses: list[UpdateTypeDef] = addon.update(wait=wait)
+            upgrade_details[addon.name] = _update_responses
         return upgrade_details
 
     def upgrade_nodegroups(self, wait: bool = False) -> Dict[str, Any]:
@@ -779,8 +860,6 @@ class Cluster(EksResource):
         response = self.autoscaling_client.describe_auto_scaling_groups(
             Filters=[{"Name": "tag-key", "Values": [cluster_tag]}]
         ).get("AutoScalingGroups", [])
-        logger.info("response!")
-        print("region: ", self.region)
         return [AutoscalingGroup.get(asg_data=asg, region=self.region, cluster=self) for asg in response]
 
     def get_asg_names(self) -> List[str]:
