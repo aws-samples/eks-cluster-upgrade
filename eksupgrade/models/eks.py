@@ -16,6 +16,7 @@ from kubernetes import config as k8s_config
 from packaging.version import Version
 from packaging.version import parse as parse_version
 
+from ..exceptions import InvalidUpgradeTargetVersion
 from .base import AwsRegionResource
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -527,9 +528,10 @@ class ClusterAddon(EksResource):
         """Return the list of semantic versions to target for step upgrade by minor."""
         versions: List[str] = []
         for minor in self.minors_to_target:
-            version: Version = self.get_version_by_minor(minor)
+            version: Optional[Version] = self.get_version_by_minor(minor)
             full_version: str = self.get_full_version_str(version)
-            versions.append(full_version)
+            if full_version:
+                versions.append(full_version)
         return versions
 
     @property
@@ -545,27 +547,47 @@ class ClusterAddon(EksResource):
     @property
     def within_target_minor(self) -> bool:
         """Determine if the current version is within +1 of the minor target version."""
+        logger.info(
+            "Checking Add-on: %s - current version: %s - target version: %s",
+            self.name,
+            self.semantic_version,
+            self._target_version_semver,
+        )
+        logger.info(
+            "Criteria - Sem Ver minor +1: %s - Sem Ver Minor: %s - Target Ver minor: %s",
+            self.semantic_version.minor + 1,
+            self.semantic_version.minor,
+            self._target_version_semver.minor,
+        )
         if self._target_version_semver.minor in (self.semantic_version.minor, self.semantic_version.minor + 1):
+            logger.info("Within target minor!")
             return True
         return False
 
-    def get_version_by_minor(self, minor: int) -> Version:
+    def get_version_by_minor(self, minor: int) -> Optional[Version]:
         """Return the semantic version based on the input version."""
-        return [item for item in self.semantic_versions if item.minor == minor][0]
+        try:
+            return [item for item in self.semantic_versions if item.minor == minor][0]
+        except IndexError:
+            return None
 
-    def get_full_version_str(self, semantic_version: Version) -> str:
+    def get_full_version_str(self, semantic_version: Optional[Version]) -> str:
         """Return the complete version string based on the semantic version."""
+        if not semantic_version:
+            return ""
         return next(item for item in self.sorted_versions if item.startswith(f"v{str(semantic_version)}"))
 
     @property
-    def next_minor_semver(self) -> Version:
+    def next_minor_semver(self) -> Optional[Version]:
         """Return the next minor version's semantic version."""
         return self.get_version_by_minor(minor=self.semantic_version.minor + 1)
 
     @property
     def next_minor(self) -> str:
         """Return the next minor's complete version string."""
-        return self.get_full_version_str(self.next_minor_semver)
+        if self.next_minor_semver:
+            return self.get_full_version_str(self.next_minor_semver)
+        return ""
 
     @property
     def latest_version(self) -> str:
@@ -679,7 +701,7 @@ class Cluster(EksResource):
     @cached_property
     def current_addons(self) -> List[str]:
         """Return a list of addon names currently installed in the cluster."""
-        logger.debug("Getting the list of current cluster addons for cluster: %s...", self.name)
+        logger.info("Getting the list of current cluster addons for cluster: %s...", self.name)
         return self.eks_client.list_addons(clusterName=self.name).get("addons", [])
 
     @property
@@ -705,13 +727,13 @@ class Cluster(EksResource):
             The list of `ClusterAddon` objects.
 
         """
-        logger.debug("Fetching Cluster Addons...")
+        logger.info("Fetching Cluster Addons...")
         return [ClusterAddon.get(addon, self, self.region) for addon in self.current_addons]
 
     @cached_property
     def needs_upgrade(self) -> bool:
         """Determine whether or not this addon should be upgraded."""
-        return parse_version(self.version) < parse_version(self.target_version)
+        return self._version_object < self._target_version_object
 
     @cached_property
     def upgradable_addons(self) -> List[ClusterAddon]:
@@ -723,8 +745,38 @@ class Cluster(EksResource):
         """Get a list of managed nodegroups that require upgrade."""
         return [nodegroup for nodegroup in self.nodegroups if nodegroup.needs_upgrade]
 
-    def update_cluster(self, wait: bool = True) -> UpdateTypeDef:
+    @cached_property
+    def _version_object(self) -> Version:
+        """Return the Cluster.version as a Version object."""
+        return Version(self.version)
+
+    @cached_property
+    def _target_version_object(self) -> Version:
+        """Return the Cluster.target_version as a Version object."""
+        return Version(self.target_version)
+
+    def update_cluster(self, wait: bool = True) -> Optional[UpdateTypeDef]:
         """Upgrade the cluster itself."""
+        if self._version_object > self._target_version_object:
+            logger.warning(
+                "Cluster: %s version: %s already greater than target version: %s! Skipping cluster upgrade!",
+                self.name,
+                self.version,
+                self.target_version,
+            )
+            return None
+
+        if self._version_object == self._target_version_object:
+            logger.warning("Cluster: %s already on version: %s! Skipping cluster upgrade!", self.name, self.version)
+            return None
+
+        if self._target_version_object.minor > self._version_object.minor + 1:
+            logger.error(
+                "Cluster: %s can't be upgraded more than one minor at a time! Please adjust the target cluster version and try again!",
+                self.name,
+            )
+            raise InvalidUpgradeTargetVersion()
+
         logger.info(
             "Upgrading cluster: %s from version: %s to version: %s", self.name, self.version, self.target_version
         )
@@ -745,6 +797,7 @@ class Cluster(EksResource):
 
     def upgrade_addons(self, wait: bool = False) -> Dict[str, Any]:
         """Upgrade all cluster addons."""
+        logger.info("The add-ons update has been initiated...")
         upgrade_details: Dict[str, Any] = {}
         for addon in self.upgradable_addons:
             _update_responses: list[UpdateTypeDef] = addon.update(wait=wait)
@@ -862,7 +915,8 @@ class Cluster(EksResource):
         ).get("AutoScalingGroups", [])
         return [AutoscalingGroup.get(asg_data=asg, region=self.region, cluster=self) for asg in response]
 
-    def get_asg_names(self) -> List[str]:
+    @cached_property
+    def asg_names(self) -> List[str]:
         """Get the autoscaling group names."""
         return [asg.name for asg in self.autoscaling_groups]
 

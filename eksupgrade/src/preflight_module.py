@@ -734,7 +734,7 @@ def pod_disruption_budget(
                     {"name": i.metadata.name, "namespace": i.metadata.namespace, "nodename": i.spec.node_name}
                 )
             report["pdb"]["pods"] = pods_and_nodes
-            logger.info(pods_and_nodes)
+            logger.debug(pods_and_nodes)
     except Exception as error:
         errors.append(f"Error occurred while checking for pod disruption budget {error}")
         customer_report["pod disruption budget"] = "Error occurred while checking for pod disruption budget"

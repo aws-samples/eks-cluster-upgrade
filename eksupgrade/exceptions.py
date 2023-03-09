@@ -19,3 +19,7 @@ class ClusterInactiveException(ClusterException):
 
 class EksUpgradeNotImplementedError(BaseEksUpgradeException, NotImplementedError):
     """Define the Not Implemented exception for eksupgrade."""
+
+
+class InvalidUpgradeTargetVersion(BaseEksUpgradeException):
+    """Define the exception to be raised when invalid target versions are provided."""

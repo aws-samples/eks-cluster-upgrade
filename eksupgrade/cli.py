@@ -58,7 +58,14 @@ Display the eksupgrade version:
     parser.add_argument("--max_retry", default=2, type=int, help="you can specify max retry or else by default it is 2")
     parser.add_argument("--force", action="store_true", default=False, help="force pod eviction when you have pdb")
     parser.add_argument("--preflight", action="store_true", default=False, help="Run pre-flight check without upgrade")
+    parser.add_argument(
+        "--disable-checks",
+        action="store_true",
+        default=False,
+        help="Totally disable the pre-flight and post-flight checks during upgrade scenarios",
+    )
     parser.add_argument("--parallel", action="store_true", default=False, help="Upgrade all nodegroups in parallel")
+    parser.add_argument("--custom-ami", type=str, default="", help="The AMI ID to be used for self hosted nodegroups")
     parser.add_argument(
         "--latest-addons",
         action="store_true",

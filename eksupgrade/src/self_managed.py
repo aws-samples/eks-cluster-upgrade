@@ -59,20 +59,6 @@ def get_asg_node_groups(cluster_name: str, region: str) -> List[str]:
     return asg_groups
 
 
-def filter_node_groups(cluster_name: str, node_list: List[str], latest_version: str, region: str) -> List[str]:
-    """Filter the Node groups."""
-    old_ng = []
-    for node_group in node_list:
-        logger.info("Filter node group: %s", node_group)
-        status, version = describe_node_groups(cluster_name=cluster_name, nodegroup=node_group, region=region)
-
-        if status in ["ACTIVE", "UPDATING"] and not version == latest_version:
-            old_ng.append(node_group)
-
-    logger.info("The Old Manged Node Groups Found Are %s", old_ng)
-    return old_ng
-
-
 def lt_id_func(cluster_name: str, nodegroup: str, version: str, region: str):
     """Get the launch template ID, AMI, and version information."""
     client = boto3.client("eks", region_name=region)

@@ -32,7 +32,7 @@ from .src.k8s_client import (
 )
 from .src.latest_ami import get_latest_ami
 from .src.preflight_module import pre_flight_checks
-from .src.self_managed import filter_node_groups, get_asg_node_groups, get_node_groups, update_nodegroup
+from .src.self_managed import get_asg_node_groups, update_nodegroup
 
 logger = logging.getLogger(__name__)
 
@@ -142,20 +142,23 @@ def actual_update(cluster_name, asg_iter, to_update, region, max_retry, forced):
 
 def main(args) -> None:
     """Handle the main workflow for eks update."""
-    try:
-        cluster_name = args.name
-        to_update = args.version
-        pass_vpc = args.pass_vpc
-        max_retry = args.max_retry
-        region = args.region
-        is_present = False
-        forced = args.force
-        paralleled = args.parallel
-        preflight = args.preflight
-        use_latest_addons = args.latest_addons
+    is_present = False
+    cluster_name = args.name
+    to_update = args.version
+    pass_vpc = args.pass_vpc
+    max_retry = args.max_retry
+    region = args.region
+    forced = args.force
+    paralleled = args.parallel
+    preflight = args.preflight
+    use_latest_addons = args.latest_addons
+    custom_ami = args.custom_ami
+    disable_checks = args.disable_checks
+    replicas_value = 0
 
+    try:
         # Preflight Logic
-        if not pre_flight_checks(True, cluster_name, region, args.pass_vpc, args.version, args.force):
+        if not disable_checks and not pre_flight_checks(True, cluster_name, region, pass_vpc, args.version, args.force):
             logger.error("Pre-flight check for cluster %s failed!", cluster_name)
             sys.exit()
         else:
@@ -176,53 +179,35 @@ def main(args) -> None:
         logger.info("The current version of the cluster was detected as: %s", target_cluster.version)
 
         # Checking Cluster is Active or Not Before Making an Update
-        start = time.time()
         if target_cluster.active:
             target_cluster.update_cluster(wait=True)
 
-        # finding the managed autoscaling groups
-        end = time.time()
-        hours, rem = divmod(end - start, 3600)
-        minutes, seconds = divmod(rem, 60)
-        logger.info("The Time Taken For the Cluster to Upgrade %s:%s:%s", int(hours), int(minutes), seconds)
-
-        finding_manged = get_asg_node_groups(cluster_name, region)
+        # Managed Node Groups
+        managed_nodegroups = get_asg_node_groups(cluster_name, region)
         logger.info("The Manged Node Groups Found are %s", ",".join(target_cluster.nodegroup_names))
         asg_list = get_asgs(cluster_name, region)
         logger.info("The ASGs Found Are %s", ",".join(asg_list))
 
         # removing self-managed from managed so that we don't update them again
-        asg_list_self_managed = list(set(asg_list) - set(finding_manged))
+        asg_list_self_managed = list(set(asg_list) - set(managed_nodegroups))
+        logger.info("The Manged Node Groups Found are %s", ",".join(target_cluster.nodegroup_names))
+
+        managed_nodegroup_asgs: list[str] = []
+        for nodegroup in target_cluster.nodegroups:
+            managed_nodegroup_asgs += nodegroup.autoscaling_group_names
+
+        # removing self-managed from managed so that we don't update them again
+        asg_list_self_managed = list(set(target_cluster.asg_names) - set(managed_nodegroup_asgs))
 
         # addons update
-        finding_manged_nodes_names = get_node_groups(cluster_name=cluster_name, region=region)
-
-        logger.info("The add-ons Update has been initiated...")
-        start_time = time.time()
-        start = time.time()
-        logger.info("The Addons Upgrade Started At %s", str(start_time))
         target_cluster.upgrade_addons(wait=True)
-        end = time.time()
-        hours, rem = divmod(end - start, 3600)
-        minutes, seconds = divmod(rem, 60)
 
-        logger.info("The Taken For the Addons Upgrade %s:%s:%s", int(hours), int(minutes), seconds)
-        # finding managed node groups with filter
-        finding_manged_nodes = filter_node_groups(
-            cluster_name=cluster_name,
-            node_list=finding_manged_nodes_names,
-            latest_version=to_update,
-            region=region,
-        )
-        if finding_manged:
-            logger.info("The OutDated Managed Node Groups = %s", finding_manged)
+        if managed_nodegroups:
+            logger.info("The outdated managed nodegroups = %s", managed_nodegroups)
         else:
-            logger.info("No OutDated Managed Node Groups Found")
-
-        replicas_value = 0
+            logger.info("No outdated managed nodegroups found!")
 
         # checking auto scaler present and the value associated from it
-
         is_present, replicas_value = is_cluster_auto_scaler_present(cluster_name=cluster_name, region=region)
 
         if is_present:
@@ -238,14 +223,9 @@ def main(args) -> None:
                 worker.setDaemon(True)
                 worker.start()
 
-        for ng_name in finding_manged_nodes:
-            start = time.time()
-            logger.info("Updating the Node Group = %s To version = %s", ng_name, to_update)
-            if paralleled:
-                queue.put([cluster_name, ng_name, to_update, region, max_retry, forced, "managed"])
-            else:
-                update_nodegroup(cluster_name, ng_name, to_update, region)
+        target_cluster.upgrade_nodegroups(wait=not paralleled)
 
+        # TODO: Use custom_ami to update launch templates and re-roll self-managed nodes under ASGs.
         for asg_iter in asg_list_self_managed:
             if paralleled:
                 queue.put([cluster_name, asg_iter, to_update, region, max_retry, forced, "selfmanaged"])
@@ -263,17 +243,19 @@ def main(args) -> None:
         logger.info("EKS Cluster %s UPDATED TO %s", cluster_name, to_update)
         logger.info("Post flight check for the upgraded cluster")
 
-        if not (pre_flight_checks(False, cluster_name, region, args.pass_vpc)):
+        if not disable_checks and not pre_flight_checks(
+            preflight=False, cluster_name=cluster_name, region=region, pass_vpc=pass_vpc, force_upgrade=forced
+        ):
             logger.info("Post flight check for cluster %s failed after it upgraded", cluster_name)
         else:
             logger.info("After update check for cluster completed successfully")
-    except Exception as e:
+    except Exception as error:
         if is_present:
             try:
                 cluster_auto_enable_disable(
                     cluster_name=cluster_name, operation="start", mx_val=replicas_value, region=region
                 )
                 logger.info("Cluster Autoscaler is Enabled Again")
-            except Exception as e:
-                logger.error("Autoenable failed and must be done manually! Error: %s", e)
-        logger.error("Exception encountered in main method - Error: %s", e)
+            except Exception as error2:
+                logger.error("Autoenable failed and must be done manually! Error: %s", error2)
+        logger.error("Exception encountered in main method - Error: %s", error)
