@@ -791,7 +791,7 @@ class Cluster(EksResource):
                 "Errors encountered while attempting to update cluster: %s - Errors: %s", self.name, _update_errors
             )
             self.errors += _update_errors
-        elif wait:
+        if wait:
             self.wait_for_active()
         return update_response_body
 
@@ -992,7 +992,9 @@ class Cluster(EksResource):
             latest_addons=latest_addons,
         )
 
-    def wait_for_active(self, delay: int = 30, max_attempts: int = 80):
+    def wait_for_active(self, delay: int = 35, max_attempts: int = 160):
         """Wait for the cluster to become active."""
+        logger.info("Waiting for cluster to become active...")
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(name=self.name, WaiterConfig=waiter_config)
+        logger.info("Cluster now active, control plane upgrade should be completed!")

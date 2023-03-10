@@ -181,6 +181,13 @@ def main(args) -> None:
         # Checking Cluster is Active or Not Before Making an Update
         if target_cluster.active:
             target_cluster.update_cluster(wait=True)
+        else:
+            logger.warning(
+                "The target EKS cluster: %s isn't currently active - status: %s",
+                target_cluster.name,
+                target_cluster.status,
+            )
+            target_cluster.wait_for_active()
 
         # Managed Node Groups
         managed_nodegroups = get_asg_node_groups(cluster_name, region)
