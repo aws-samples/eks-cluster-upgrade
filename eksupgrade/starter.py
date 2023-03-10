@@ -158,13 +158,16 @@ def main(args) -> None:
 
     try:
         # Preflight Logic
-        if not disable_checks and not pre_flight_checks(True, cluster_name, region, pass_vpc, args.version, args.force):
-            logger.error("Pre-flight check for cluster %s failed!", cluster_name)
-            sys.exit()
+        if not disable_checks:
+            if not pre_flight_checks(True, cluster_name, region, pass_vpc, args.version, args.force):
+                logger.error("Pre-flight check for cluster %s failed!", cluster_name)
+                sys.exit()
+            else:
+                logger.info("Pre-flight check for the cluster %s succeeded!", cluster_name)
+            if preflight:
+                sys.exit()
         else:
-            logger.info("Pre-flight check for the cluster %s succeeded!", cluster_name)
-        if preflight:
-            sys.exit()
+            logger.info("Pre-flight check was disabled and didn't run.")
 
         # upgrade Logic
         logger.info("The cluster upgrade process has started")
@@ -190,15 +193,7 @@ def main(args) -> None:
             target_cluster.wait_for_active()
 
         # Managed Node Groups
-        managed_nodegroups = get_asg_node_groups(cluster_name, region)
         logger.info("The Manged Node Groups Found are %s", ",".join(target_cluster.nodegroup_names))
-        asg_list = get_asgs(cluster_name, region)
-        logger.info("The ASGs Found Are %s", ",".join(asg_list))
-
-        # removing self-managed from managed so that we don't update them again
-        asg_list_self_managed = list(set(asg_list) - set(managed_nodegroups))
-        logger.info("The Manged Node Groups Found are %s", ",".join(target_cluster.nodegroup_names))
-
         managed_nodegroup_asgs: list[str] = []
         for nodegroup in target_cluster.nodegroups:
             managed_nodegroup_asgs += nodegroup.autoscaling_group_names
@@ -208,11 +203,6 @@ def main(args) -> None:
 
         # addons update
         target_cluster.upgrade_addons(wait=True)
-
-        if managed_nodegroups:
-            logger.info("The outdated managed nodegroups = %s", managed_nodegroups)
-        else:
-            logger.info("No outdated managed nodegroups found!")
 
         # checking auto scaler present and the value associated from it
         is_present, replicas_value = is_cluster_auto_scaler_present(cluster_name=cluster_name, region=region)
@@ -229,6 +219,11 @@ def main(args) -> None:
                 worker = StatsWorker(queue, x)
                 worker.setDaemon(True)
                 worker.start()
+
+        if target_cluster.upgradable_managed_nodegroups:
+            logger.info("The outdated managed nodegroups = %s", target_cluster.upgradable_managed_nodegroups)
+        else:
+            logger.info("No outdated managed nodegroups found!")
 
         target_cluster.upgrade_nodegroups(wait=not paralleled)
 
@@ -250,12 +245,15 @@ def main(args) -> None:
         logger.info("EKS Cluster %s UPDATED TO %s", cluster_name, to_update)
         logger.info("Post flight check for the upgraded cluster")
 
-        if not disable_checks and not pre_flight_checks(
-            preflight=False, cluster_name=cluster_name, region=region, pass_vpc=pass_vpc, force_upgrade=forced
-        ):
-            logger.info("Post flight check for cluster %s failed after it upgraded", cluster_name)
+        if not disable_checks:
+            if not pre_flight_checks(
+                preflight=False, cluster_name=cluster_name, region=region, pass_vpc=pass_vpc, force_upgrade=forced
+            ):
+                logger.info("Post flight check for cluster %s failed after it upgraded", cluster_name)
+            else:
+                logger.info("After update check for cluster completed successfully")
         else:
-            logger.info("After update check for cluster completed successfully")
+            logger.info("Post-flight check was disabled and didn't run.")
     except Exception as error:
         if is_present:
             try:

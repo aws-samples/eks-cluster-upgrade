@@ -167,13 +167,23 @@ class AutoscalingGroup(AwsRegionResource):
             )
             asg_data = response["AutoScalingGroups"][0]
 
-        status: str = asg_data.get("Status", "")
+        asg_name: str = autoscaling_group_name or asg_data.get("AutoScalingGroupName", "")
         logger.info(
-            "Autoscaling Group: %s - Status: %s - Cluster: %s",
-            autoscaling_group_name,
-            status,
+            "Autoscaling Group: %s - Cluster: %s",
+            asg_name,
             cluster.name,
         )
+        instances = asg_data.get("Instances", [])
+        unhealthy_instances = [
+            instance["InstanceId"] for instance in instances if instance["HealthStatus"] == "Unhealthy"
+        ]
+        healthy_instances: List[str] = [
+            instance["InstanceId"] for instance in instances if instance["HealthStatus"] == "Healthy"
+        ]
+
+        if unhealthy_instances:
+            logger.warning("Unhealthy Instances: %s", unhealthy_instances)
+        logger.debug("Healthy Instances: %s", healthy_instances)
 
         return cls(
             cluster=cluster,
@@ -181,7 +191,7 @@ class AutoscalingGroup(AwsRegionResource):
             launch_template=asg_data.get("LaunchTemplate", {}),
             mixed_instances_policy=asg_data.get("MixedInstancesPolicy", {}),
             name=asg_data.get("AutoScalingGroupName", ""),
-            status=status,
+            status=asg_data.get("Status", ""),
             arn=asg_data.get("AutoScalingGroupARN", ""),
             min_size=asg_data.get("MinSize", 0),
             max_size=asg_data.get("MaxSize", 0),
@@ -350,6 +360,7 @@ class ManagedNodeGroup(EksResource):
         if client_request_id:
             update_kwargs["clientRequestToken"] = client_request_id
 
+        version = version or self.cluster.target_version
         logger.info("Updating nodegroup: %s from version: %s to version: %s", self.name, self.version, version)
         update_response = self.eks_client.update_nodegroup_version(
             clusterName=self.cluster.name, nodegroupName=self.name, force=force, **update_kwargs
@@ -362,12 +373,12 @@ class ManagedNodeGroup(EksResource):
                 "Errors encountered while attempting to update addon: %s - Errors: %s", self.name, _update_errors
             )
             self.errors += _update_errors
-        elif wait:
+        if wait:
             self.wait_for_active()
 
         return update_response_body
 
-    def wait_for_active(self, delay: int = 30, max_attempts: int = 80):
+    def wait_for_active(self, delay: int = 35, max_attempts: int = 160):
         """Wait for the nodegroup to become active."""
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, nodegroupName=self.name, WaiterConfig=waiter_config)
@@ -547,20 +558,7 @@ class ClusterAddon(EksResource):
     @property
     def within_target_minor(self) -> bool:
         """Determine if the current version is within +1 of the minor target version."""
-        logger.info(
-            "Checking Add-on: %s - current version: %s - target version: %s",
-            self.name,
-            self.semantic_version,
-            self._target_version_semver,
-        )
-        logger.info(
-            "Criteria - Sem Ver minor +1: %s - Sem Ver Minor: %s - Target Ver minor: %s",
-            self.semantic_version.minor + 1,
-            self.semantic_version.minor,
-            self._target_version_semver.minor,
-        )
         if self._target_version_semver.minor in (self.semantic_version.minor, self.semantic_version.minor + 1):
-            logger.info("Within target minor!")
             return True
         return False
 
@@ -598,9 +596,13 @@ class ClusterAddon(EksResource):
     def target_version(self) -> str:
         """Return the target version."""
         # If VPC CNI Add-on, use graduated upgrade by single minor version.
-        if self.name == "vpc-cni" and not self.within_target_minor:
+        if (
+            self.name == "vpc-cni"
+            and not self.within_target_minor
+            and parse_version(self.version) < parse_version(self.next_minor)
+        ):
             logger.info(
-                "VPC CNI will target version: %s instead of %s because it's not within +1 or current minor...",
+                "vpc-cni will target version: %s instead of %s because it's not within +1 or current minor...",
                 self.next_minor,
                 self._target_version,
             )
@@ -612,7 +614,7 @@ class ClusterAddon(EksResource):
         """Determine whether or not this addon should be upgraded."""
         return parse_version(self.version) < parse_version(self.target_version)
 
-    def wait_for_active(self, delay: int = 30, max_attempts: int = 80) -> None:
+    def wait_for_active(self, delay: int = 35, max_attempts: int = 160) -> None:
         """Wait for the addon to become active."""
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, addonName=self.name, WaiterConfig=waiter_config)
