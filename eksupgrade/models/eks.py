@@ -5,6 +5,7 @@ import base64
 import datetime
 import logging
 import re
+import time
 from abc import ABC
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -378,10 +379,13 @@ class ManagedNodeGroup(EksResource):
 
         return update_response_body
 
-    def wait_for_active(self, delay: int = 35, max_attempts: int = 160):
+    def wait_for_active(self, delay: int = 35, initial_delay: int = 10, max_attempts: int = 160):
         """Wait for the nodegroup to become active."""
+        logger.info("Waiting for the Managed Node Group: %s to become active...", self.name)
+        time.sleep(initial_delay)
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, nodegroupName=self.name, WaiterConfig=waiter_config)
+        logger.info("Managed Nodegroup: %s now active!", self.name)
 
 
 @dataclass
@@ -614,10 +618,13 @@ class ClusterAddon(EksResource):
         """Determine whether or not this addon should be upgraded."""
         return parse_version(self.version) < parse_version(self.target_version)
 
-    def wait_for_active(self, delay: int = 35, max_attempts: int = 160) -> None:
+    def wait_for_active(self, delay: int = 35, initial_delay: int = 10, max_attempts: int = 160) -> None:
         """Wait for the addon to become active."""
+        logger.info("Waiting for the add-on: %s to become active...", self.name)
+        time.sleep(initial_delay)
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, addonName=self.name, WaiterConfig=waiter_config)
+        logger.info("Add-on: %s upgraded!", self.name)
 
 
 @dataclass
@@ -994,9 +1001,10 @@ class Cluster(EksResource):
             latest_addons=latest_addons,
         )
 
-    def wait_for_active(self, delay: int = 35, max_attempts: int = 160):
+    def wait_for_active(self, delay: int = 35, initial_delay: int = 10, max_attempts: int = 160):
         """Wait for the cluster to become active."""
-        logger.info("Waiting for cluster to become active...")
+        logger.info("Waiting for cluster: %s to become active...", self.name)
+        time.sleep(initial_delay)
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(name=self.name, WaiterConfig=waiter_config)
-        logger.info("Cluster now active, control plane upgrade should be completed!")
+        logger.info("Cluster: %s now active, control plane upgrade should be completed!", self.name)
