@@ -379,7 +379,7 @@ class ManagedNodeGroup(EksResource):
 
         return update_response_body
 
-    def wait_for_active(self, delay: int = 35, initial_delay: int = 10, max_attempts: int = 160):
+    def wait_for_active(self, delay: int = 35, initial_delay: int = 30, max_attempts: int = 160) -> None:
         """Wait for the nodegroup to become active."""
         logger.info("Waiting for the Managed Node Group: %s to become active...", self.name)
         time.sleep(initial_delay)
@@ -618,7 +618,7 @@ class ClusterAddon(EksResource):
         """Determine whether or not this addon should be upgraded."""
         return parse_version(self.version) < parse_version(self.target_version)
 
-    def wait_for_active(self, delay: int = 35, initial_delay: int = 10, max_attempts: int = 160) -> None:
+    def wait_for_active(self, delay: int = 35, initial_delay: int = 30, max_attempts: int = 160) -> None:
         """Wait for the addon to become active."""
         logger.info("Waiting for the add-on: %s to become active...", self.name)
         time.sleep(initial_delay)
@@ -1001,7 +1001,7 @@ class Cluster(EksResource):
             latest_addons=latest_addons,
         )
 
-    def wait_for_active(self, delay: int = 35, initial_delay: int = 10, max_attempts: int = 160):
+    def wait_for_active(self, delay: int = 35, initial_delay: int = 30, max_attempts: int = 160) -> None:
         """Wait for the cluster to become active."""
         logger.info("Waiting for cluster: %s to become active...", self.name)
         time.sleep(initial_delay)
