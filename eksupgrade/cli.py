@@ -65,7 +65,6 @@ Display the eksupgrade version:
         help="Totally disable the pre-flight and post-flight checks during upgrade scenarios",
     )
     parser.add_argument("--parallel", action="store_true", default=False, help="Upgrade all nodegroups in parallel")
-    parser.add_argument("--custom-ami", type=str, default="", help="The AMI ID to be used for self hosted nodegroups")
     parser.add_argument(
         "--latest-addons",
         action="store_true",

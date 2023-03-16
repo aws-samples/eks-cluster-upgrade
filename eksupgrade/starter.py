@@ -152,7 +152,6 @@ def main(args) -> None:
     paralleled = args.parallel
     preflight = args.preflight
     use_latest_addons = args.latest_addons
-    custom_ami = args.custom_ami
     disable_checks = args.disable_checks
     replicas_value = 0
 
