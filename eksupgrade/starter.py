@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import datetime
-import logging
 import queue
 import sys
 import threading
 import time
+
+from eksupgrade.utils import get_logger
 
 from .exceptions import ClusterInactiveException
 from .models.eks import Cluster
@@ -33,7 +34,7 @@ from .src.latest_ami import get_latest_ami
 from .src.preflight_module import pre_flight_checks
 from .src.self_managed import update_nodegroup
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 queue = queue.Queue()
 

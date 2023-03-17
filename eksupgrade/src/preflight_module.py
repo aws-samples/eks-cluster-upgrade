@@ -1,7 +1,6 @@
 """Define the preflight module."""
 from __future__ import annotations
 
-import logging
 from typing import Any, Dict, List
 
 import boto3
@@ -15,7 +14,9 @@ from .k8s_client import get_default_version, loading_config
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logger = logging.getLogger(__name__)
+from eksupgrade.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 # Function declaration for pre flight checks

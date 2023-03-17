@@ -8,8 +8,9 @@ from typing import List, Optional
 
 from eksupgrade import __version__
 from eksupgrade.starter import main
+from eksupgrade.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def entry(args: Optional[List[str]] = None) -> None:
@@ -76,7 +77,11 @@ Display the eksupgrade version:
     )
     parser.add_argument("--version", action="version", version=f"eksupgrade {__version__}")
     parsed_arguments = parser.parse_args(args)
-    logging.basicConfig(level=parsed_arguments.log_level.upper())
+    logging.basicConfig(
+        level=parsed_arguments.log_level.upper(),
+        format="[%(levelname)s] : %(asctime)s : %(name)s : %(message)s",
+        datefmt="%d-%b-%y %H:%M:%S",
+    )
     main(parsed_arguments)
 
 
