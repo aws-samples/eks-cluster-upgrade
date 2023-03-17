@@ -62,7 +62,7 @@ Display the eksupgrade version:
         "--disable-checks",
         action="store_true",
         default=False,
-        help="Totally disable the pre-flight and post-flight checks during upgrade scenarios",
+        help="Disable pre-flight and post-flight checks",
     )
     parser.add_argument("--parallel", action="store_true", default=False, help="Upgrade all nodegroups in parallel")
     parser.add_argument(
