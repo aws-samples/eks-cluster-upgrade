@@ -13,7 +13,6 @@ from .models.eks import Cluster
 from .src.boto_aws import (
     add_autoscaling,
     add_node,
-    get_asgs,
     get_latest_instance,
     get_num_of_instances,
     get_outdated_asg,
@@ -32,7 +31,7 @@ from .src.k8s_client import (
 )
 from .src.latest_ami import get_latest_ami
 from .src.preflight_module import pre_flight_checks
-from .src.self_managed import get_asg_node_groups, update_nodegroup
+from .src.self_managed import update_nodegroup
 
 logger = logging.getLogger(__name__)
 

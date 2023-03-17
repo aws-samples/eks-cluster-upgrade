@@ -203,29 +203,6 @@ def get_num_of_instances(asg_name: str, exclude_ids: List[str], region: str) -> 
     return len(instances)
 
 
-def get_asgs(cluster_name: str, region: str) -> List[str]:
-    """Get a list of ASGs by cluster and region.
-
-    We get a list of ASGs (auto scaling groups) which will mach our format
-    "kubernetes.io/cluster/{cluster_name}"
-    and returns an empty list if none are found
-
-    """
-    asg_client = boto3.client("autoscaling", region_name=region)
-    pat = "kubernetes.io/cluster/{clusterName}"
-    response = asg_client.describe_auto_scaling_groups()
-    matching = []
-
-    for asg in response["AutoScalingGroups"]:
-        for target_group in asg["Tags"]:
-            if target_group["Key"] == pat.format(clusterName=cluster_name):
-                matching.append(asg)
-
-    matching_names = [x["AutoScalingGroupName"] for x in matching]
-    logger.info("ASG Matched = %s", " ,".join(matching_names))
-    return matching_names
-
-
 def old_lt_scenarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
     """Get the old launch template based on launch template name and version 1!=2."""
     lt_name = inst["LaunchTemplate"]["LaunchTemplateName"]

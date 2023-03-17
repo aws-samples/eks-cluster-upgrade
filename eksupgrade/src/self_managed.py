@@ -22,13 +22,6 @@ def status_of_cluster(cluster_name: str, region: str) -> List[str]:
     return [status, version]
 
 
-def get_node_groups(cluster_name: str, region: str) -> List[Any]:
-    """Get the node group list."""
-    client = boto3.client("eks", region_name=region)
-    response = client.list_nodegroups(clusterName=cluster_name, maxResults=100)
-    return response["nodegroups"]
-
-
 def describe_node_groups(cluster_name: str, nodegroup: str, region: str) -> List[str]:
     """Get the description of the Node Group."""
     client = boto3.client("eks", region_name=region)
@@ -37,26 +30,6 @@ def describe_node_groups(cluster_name: str, nodegroup: str, region: str) -> List
     version = response.get("nodegroup")["version"]
     logger.info("The NodeGroup = %s Status = %s and Version = %s", nodegroup, status, version)
     return [status, version]
-
-
-def get_asg_node_groups(cluster_name: str, region: str) -> List[str]:
-    """Get the ASG of the self-managed node groups."""
-    client = boto3.client("eks", region_name=region)
-    asg_groups = []
-    node_groups = get_node_groups(cluster_name, region)
-
-    if not node_groups:
-        return []
-
-    for nodegroup in node_groups:
-        response = client.describe_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup)["nodegroup"][
-            "resources"
-        ]["autoScalingGroups"]
-        for asg_name in response:
-            asg_groups.append(asg_name["name"])
-
-    logger.info("The cluster %s in region %s ASGs of the self-managed nodegroups: %s", cluster_name, region, asg_groups)
-    return asg_groups
 
 
 def lt_id_func(cluster_name: str, nodegroup: str, version: str, region: str):
