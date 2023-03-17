@@ -69,7 +69,7 @@ Display the eksupgrade version:
         "--latest-addons",
         action="store_true",
         default=False,
-        help="Upgrade addons to the latest eligible version instead of default",
+        help="Upgrade addons to the latest eligible version instead of their default version",
     )
     parser.add_argument(
         "--log-level", default="INFO", help="The log level to be displayed in the console. Default to: INFO"
