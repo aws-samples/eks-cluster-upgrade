@@ -115,8 +115,8 @@ eksupgrade --help
 
 ```sh
 usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
-                  [--preflight] [--parallel]
-                  [--log-level LOG_LEVEL] [--version]
+                  [--preflight] [--disable-checks] [--parallel]
+                  [--latest-addons] [--log-level LOG_LEVEL] [--version]
                   name version region
 
 Amazon EKS cluster upgrade
@@ -133,7 +133,11 @@ optional arguments:
                         you can specify max retry or else by default it is 2
   --force               force pod eviction when you have pdb
   --preflight           Run pre-flight check without upgrade
+  --disable-checks      Totally disable the pre-flight and post-flight
+                        checks during upgrade scenarios
   --parallel            Upgrade all nodegroups in parallel
+  --latest-addons       Upgrade addons to the latest eligible version
+                        instead of default
   --log-level LOG_LEVEL
                         The log level to be displayed in the console.
                         Default to: INFO

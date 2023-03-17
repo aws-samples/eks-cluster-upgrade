@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eksupgrade"
-version = "0.6.3"
+version = "0.7.0"
 description = "The Amazon EKS cluster upgrade utility"
 authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
 readme = "README.md"
@@ -68,13 +68,14 @@ build = "poetry build"
 python = "^3.8"
 boto3 = "^1.26.84"
 kubernetes = ">=21.0.0 <25.0.0"
+packaging = ">=21.0,<22.0"
 
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.2"
 pytest-cov = "^4.0.0"
 coverage = "^7.2.1"
-moto = {extras = ["ec2", "eks", "ssm", "sts"], version = "^4.1.4"}
+moto = {extras = ["autoscaling", "ec2", "eks", "ssm", "sts"], version = "^4.1.4"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -93,7 +94,7 @@ bandit = {extras = ["toml"], version = "^1.7.4"}
 
 [tool.poetry.group.types.dependencies]
 types-pyyaml = "^6.0.12.8"
-boto3-stubs = {extras = ["ec2", "eks", "ssm", "sts"], version = "^1.26.84"}
+boto3-stubs = {extras = ["autoscaling", "ec2", "eks", "ssm", "sts"], version = "^1.26.84"}
 
 [build-system]
 requires = ["poetry-core"]

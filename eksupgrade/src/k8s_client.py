@@ -308,7 +308,7 @@ def sort_pods(
 
 @cache
 def get_addon_details(cluster_name: str, addon: str, region: str) -> Dict[str, Any]:
-    """Get addon details which includes its current version"""
+    """Get addon details which includes its current version."""
     eks_client = boto3.client("eks", region_name=region)
     addon_details: Dict[str, Any] = eks_client.describe_addon(clusterName=cluster_name, addonName=addon).get(
         "addon", {}
@@ -329,17 +329,6 @@ def get_addon_update_kwargs(cluster_name: str, addon: str, region: str) -> Dict[
     if config_values:
         kwargs["configurationValues"] = config_values
     return kwargs
-
-
-def update_eks_addon(cluster_name: str, addon: str, region: str, version: str) -> Dict[str, Any]:
-    """Update `addon` to `version`"""
-    logger.info("Updating the EKS cluster's %s add-on version via the EKS API...", addon)
-    eks_client = boto3.client("eks", region_name=region)
-    update_kwargs: Dict[str, Any] = get_addon_update_kwargs(cluster_name, addon, region)
-    update_response: Dict[str, Any] = eks_client.update_addon(
-        clusterName=cluster_name, addonName=addon, addonVersion=version, resolveConflicts="OVERWRITE", **update_kwargs
-    )
-    return update_response
 
 
 @cache
@@ -368,141 +357,6 @@ def get_default_version(addon: str, version: str, region: str) -> str:
         for item in addon_dict["addonVersions"]
         if item["compatibilities"][0]["defaultVersion"] is True
     )
-
-
-def update_addons(cluster_name: str, version: str, vpc_pass: bool, region_name: str) -> None:
-    """Update the addons."""
-    loading_config(cluster_name, region_name)
-    for _item in range(20):
-        worker = StatsWorker(queue, _item)
-        worker.setDaemon(True)
-        worker.start()
-
-    def _container_spec(image_name: str, image_uri: str, image_tag: str) -> Dict[str, Any]:
-        """Return the container specification body payload to be used to patch the resource."""
-        return {
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [
-                            {
-                                "name": image_name,
-                                "image": f"{image_uri}:{image_tag}",
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-
-    core_v1_api = client.CoreV1Api()
-    apps_v1_api = client.AppsV1Api()
-    rep = core_v1_api.list_namespaced_pod("kube-system")
-
-    add_on_dict = get_package_dict("version_dict.json")
-    old_pods_names: List[str] = [_pod.metadata.name for _pod in rep.items]
-    logger.info("The Addons Found = %s", old_pods_names)
-
-    flag_vpc, flag_core, flag_proxy, flag_scaler = True, True, True, True
-
-    coredns_new: str = get_default_version("coredns", version, region_name)
-    kubeproxy_new: str = get_default_version("kube-proxy", version, region_name)
-    cni_new: str = get_default_version("vpc-cni", version, region_name)
-    autoscaler_new: str = add_on_dict[version]["cluster-autoscaler"]
-
-    try:
-        for pod in rep.items:
-            images: List[str] = [c.image for c in pod.spec.containers]
-            image = "".join(images)
-            _current_image = image.rsplit(":", maxsplit=1)[-1]
-            _image_base_uri: str = image.split(":", maxsplit=1)[0]
-
-            if "coredns" in pod.metadata.name and _current_image != coredns_new:
-                logger.info(
-                    "%s Current Version = %s Updating to = %s",
-                    pod.metadata.name,
-                    _current_image,
-                    coredns_new,
-                )
-                if flag_core:
-                    update_eks_addon(cluster_name, "coredns", region_name, coredns_new)
-                    flag_core = False
-                time.sleep(20)
-
-                new_pod_name = sort_pods(
-                    cluster_name=cluster_name,
-                    region=region_name,
-                    original_name=pod.metadata.name,
-                    old_pods_names=old_pods_names,
-                    pod_name="kube-dns",
-                    namespace="kube-system",
-                )
-                logger.info("Old CoreDNS Pod: %s - New CoreDNS Pod: %s", pod.metadata.name, new_pod_name)
-                queue.put([cluster_name, "kube-system", new_pod_name, "coredns", region_name])
-            elif "kube-proxy" in pod.metadata.name:
-                if _current_image != kubeproxy_new:
-                    logger.info(
-                        "%s Current version: %s Updating to: %s",
-                        pod.metadata.name,
-                        _current_image,
-                        kubeproxy_new,
-                    )
-                    if flag_proxy:
-                        update_eks_addon(cluster_name, "kube-proxy", region_name, kubeproxy_new)
-                        flag_proxy = False
-                    time.sleep(20)
-                    new_pod_name = sort_pods(
-                        cluster_name=cluster_name,
-                        region=region_name,
-                        original_name=pod.metadata.name,
-                        old_pods_names=old_pods_names,
-                        pod_name="kube-proxy",
-                        namespace="kube-system",
-                    )
-
-                    logger.info("Old kube-proxy pod: %s - New kube-proxy pod: %s", pod.metadata.name, new_pod_name)
-                    queue.put([cluster_name, "kube-system", new_pod_name, "kube-proxy", region_name])
-            elif "cluster-autoscaler" in pod.metadata.name and _current_image != f"v{autoscaler_new}":
-                logger.info(
-                    "%s Current Version = %s Updating To = v%s", pod.metadata.name, _current_image, autoscaler_new
-                )
-                body = _container_spec("cluster-autoscaler", _image_base_uri, f"v{autoscaler_new}")
-                if flag_scaler:
-                    apps_v1_api.patch_namespaced_deployment(
-                        name="cluster-autoscaler", namespace="kube-system", body=body, pretty=True
-                    )
-                    flag_scaler = False
-                time.sleep(20)
-                new_pod_name = sort_pods(
-                    cluster_name=cluster_name,
-                    region=region_name,
-                    original_name=pod.metadata.name,
-                    old_pods_names=old_pods_names,
-                    pod_name="cluster-autoscaler",
-                    namespace="kube-system",
-                )
-                logger.info("old Cluster AutoScaler Pod %s - new AutoScaler pod %s", pod.metadata.name, new_pod_name)
-                queue.put([cluster_name, "kube-system", new_pod_name, "cluster-autoscaler", region_name])
-            elif "aws-node" in pod.metadata.name and _current_image != cni_new and not vpc_pass:
-                logger.info("%s Current Version = %s Updating To = %s", pod.metadata.name, _current_image, cni_new)
-                if flag_vpc:
-                    update_eks_addon(cluster_name, "vpc-cni", region_name, cni_new)
-                    flag_vpc = False
-                time.sleep(20)
-                new_pod_name = sort_pods(
-                    cluster_name=cluster_name,
-                    region=region_name,
-                    original_name=pod.metadata.name,
-                    old_pods_names=old_pods_names,
-                    pod_name="aws-node",
-                    namespace="kube-system",
-                )
-                logger.info("Old VPC CNI pod: %s - New VPC CNI pod: %s", pod.metadata.name, new_pod_name)
-                queue.put([cluster_name, "kube-system", new_pod_name, "aws-node", region_name])
-        queue.join()
-    except Exception as error:
-        logger.error("Exception encountered while attempting to update the addons - Error: %s", error)
-        raise error
 
 
 def is_cluster_auto_scaler_present(cluster_name: str, region: str) -> List[Union[bool, int]]:

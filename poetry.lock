@@ -133,6 +133,7 @@ files = [
 
 [package.dependencies]
 botocore-stubs = "*"
+mypy-boto3-autoscaling = {version = ">=1.26.0,<1.27.0", optional = true, markers = "extra == \"autoscaling\""}
 mypy-boto3-ec2 = {version = ">=1.26.0,<1.27.0", optional = true, markers = "extra == \"ec2\""}
 mypy-boto3-eks = {version = ">=1.26.0,<1.27.0", optional = true, markers = "extra == \"eks\""}
 mypy-boto3-ssm = {version = ">=1.26.0,<1.27.0", optional = true, markers = "extra == \"ssm\""}
@@ -1312,6 +1313,21 @@ python2 = ["typed-ast (>=1.4.0,<2)"]
 reports = ["lxml"]
 
 [[package]]
+name = "mypy-boto3-autoscaling"
+version = "1.26.69"
+description = "Type annotations for boto3.AutoScaling 1.26.69 service generated with mypy-boto3-builder 7.12.3"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mypy-boto3-autoscaling-1.26.69.tar.gz", hash = "sha256:0a17bc832507214092f962fc70918ce7861b6dd514e727cb861a72e14a7ef653"},
+    {file = "mypy_boto3_autoscaling-1.26.69-py3-none-any.whl", hash = "sha256:81412d84cd7f7592c74c0bea4b5c2882b9534821669950d0236def76ac41fb3c"},
+]
+
+[package.dependencies]
+typing-extensions = ">=4.1.0"
+
+[[package]]
 name = "mypy-boto3-ec2"
 version = "1.26.84"
 description = "Type annotations for boto3.EC2 1.26.84 service generated with mypy-boto3-builder 7.12.5"
@@ -1404,7 +1420,7 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -1562,7 +1578,7 @@ testutils = ["gitpython (>3)"]
 name = "pyparsing"
 version = "3.0.9"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6.8"
 files = [
@@ -2201,4 +2217,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "621945b3c73cb87dbf2cc4136db1b18cc348ddc3056ac430309cc536e69626a3"
+content-hash = "3525168dcf4b7bf574e29bfd3cb2b7a4c6a48a9b4c2f288da416e947bb8a28a3"

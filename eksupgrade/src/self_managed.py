@@ -22,13 +22,6 @@ def status_of_cluster(cluster_name: str, region: str) -> List[str]:
     return [status, version]
 
 
-def get_node_groups(cluster_name: str, region: str) -> List[Any]:
-    """Get the node group list."""
-    client = boto3.client("eks", region_name=region)
-    response = client.list_nodegroups(clusterName=cluster_name, maxResults=100)
-    return response["nodegroups"]
-
-
 def describe_node_groups(cluster_name: str, nodegroup: str, region: str) -> List[str]:
     """Get the description of the Node Group."""
     client = boto3.client("eks", region_name=region)
@@ -37,40 +30,6 @@ def describe_node_groups(cluster_name: str, nodegroup: str, region: str) -> List
     version = response.get("nodegroup")["version"]
     logger.info("The NodeGroup = %s Status = %s and Version = %s", nodegroup, status, version)
     return [status, version]
-
-
-def get_asg_node_groups(cluster_name: str, region: str) -> List[str]:
-    """Get the ASG of the self-managed node groups."""
-    client = boto3.client("eks", region_name=region)
-    asg_groups = []
-    node_groups = get_node_groups(cluster_name, region)
-
-    if not node_groups:
-        return []
-
-    for nodegroup in node_groups:
-        response = client.describe_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup)["nodegroup"][
-            "resources"
-        ]["autoScalingGroups"]
-        for asg_name in response:
-            asg_groups.append(asg_name["name"])
-
-    logger.info("The cluster %s in region %s ASGs of the self-managed nodegroups: %s", cluster_name, region, asg_groups)
-    return asg_groups
-
-
-def filter_node_groups(cluster_name: str, node_list: List[str], latest_version: str, region: str) -> List[str]:
-    """Filter the Node groups."""
-    old_ng = []
-    for node_group in node_list:
-        logger.info("Filter node group: %s", node_group)
-        status, version = describe_node_groups(cluster_name=cluster_name, nodegroup=node_group, region=region)
-
-        if status in ["ACTIVE", "UPDATING"] and not version == latest_version:
-            old_ng.append(node_group)
-
-    logger.info("The Old Manged Node Groups Found Are %s", old_ng)
-    return old_ng
 
 
 def lt_id_func(cluster_name: str, nodegroup: str, version: str, region: str):

@@ -142,44 +142,6 @@ def enable_disable_autoscaler(asg_name: str, action: str, region: str) -> str:
         return "Something went Wrong auto scaling operation failed"
 
 
-def update_cluster(cluster_name: str, version: str, region: str) -> bool:
-    """Check for cluster update."""
-    eks_client = boto3.client("eks", region_name=region)
-    logger.info(
-        "The Cluster status = %s and version = %s",
-        status_of_cluster(cluster_name, region)[0],
-        status_of_cluster(cluster_name, region)[1],
-    )
-    try:
-        if status_of_cluster(cluster_name, region)[1] == version:
-            logger.info("The %s cluster is already Updated to %s", cluster_name, version)
-            return True
-
-        while True:
-            if (
-                is_cluster_exists(cluster_name, region) == "ACTIVE"
-                and status_of_cluster(cluster_name, region)[1] != version
-            ):
-                eks_client.update_cluster_version(name=cluster_name, version=version)
-                logger.info("The %s Cluster upgrade is initiated and getting updated to %s", cluster_name, version)
-                time.sleep(60)
-
-            if is_cluster_exists(cluster_name, region) == "UPDATING":
-                logger.info("The Cluster %s is Still Updating to %s...", cluster_name, version)
-                time.sleep(20)
-
-            if (
-                is_cluster_exists(cluster_name, region) == "ACTIVE"
-                and status_of_cluster(cluster_name, region)[1] == version
-            ):
-                logger.info("The %s Updated to %s", cluster_name, version)
-                break
-        return True
-    except Exception as e:
-        logger.error("Exception encountered while attempting to update the cluster! Error: %s", e)
-        raise e
-
-
 def worker_terminate(instance_id: str, region: str) -> None:
     """Terminate instance and decreasing the desired capacity whit asg terminate instance."""
     asg_client = boto3.client("autoscaling", region_name=region)
@@ -239,29 +201,6 @@ def get_num_of_instances(asg_name: str, exclude_ids: List[str], region: str) -> 
     instances = [instance for instance in instances if instance["State"]["Name"] in ["running", "pending"]]
 
     return len(instances)
-
-
-def get_asgs(cluster_name: str, region: str) -> List[str]:
-    """Get a list of ASGs by cluster and region.
-
-    We get a list of ASGs (auto scaling groups) which will mach our format
-    "kubernetes.io/cluster/{cluster_name}"
-    and returns an empty list if none are found
-
-    """
-    asg_client = boto3.client("autoscaling", region_name=region)
-    pat = "kubernetes.io/cluster/{clusterName}"
-    response = asg_client.describe_auto_scaling_groups()
-    matching = []
-
-    for asg in response["AutoScalingGroups"]:
-        for target_group in asg["Tags"]:
-            if target_group["Key"] == pat.format(clusterName=cluster_name):
-                matching.append(asg)
-
-    matching_names = [x["AutoScalingGroupName"] for x in matching]
-    logger.info("ASG Matched = %s", " ,".join(matching_names))
-    return matching_names
 
 
 def old_lt_scenarios(inst: Dict[str, Any], asg_lt_name: str, asg_lt_version: int) -> bool:
