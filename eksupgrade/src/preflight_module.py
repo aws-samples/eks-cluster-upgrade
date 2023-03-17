@@ -17,22 +17,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
-CLUSTER_ROLES: List[str] = [
-    "eks:fargate-manager",
-    "eks:node-bootstrapper",
-    "eks:node-manager",
-    "eks:podsecuritypolicy:privileged",
-]
-
-V121_ROLES: List[str] = [
-    "eks:certificate-controller-approver",
-    "eks:cluster-event-watcher",
-    "eks:fargate-scheduler",
-    "eks:k8s-metrics",
-    "eks:nodewatcher",
-    "eks:pod-identity-mutating-webhook",
-]
-
 
 # Function declaration for pre flight checks
 # Verify IAM role for the Input
@@ -211,22 +195,6 @@ def cluster_roles(
         available: List[str] = []
         not_available: List[str] = []
         customer_report["cluster role"] = []
-
-        for role in list(set(CLUSTER_ROLES + V121_ROLES)):
-            try:
-                rbac_auth_v1_api = client.RbacAuthorizationV1Api()
-                _field_selector: str = f"metadata.name={role}"
-                res = rbac_auth_v1_api.list_cluster_role(field_selector=_field_selector)
-
-                if res.items:
-                    available.append(role)
-                else:
-                    not_available.append(role)
-                    logger.warning("Unable to find %s", role)
-                    customer_report["cluster role"].append(f"{role} is not present in the cluster")
-            except Exception as error:
-                customer_report["cluster role"].append(f"Some error occurred while checking role for {role}")
-                logger.error("Some error occurred while checking role for %s - Error: %s", role, error)
 
         if not_available:
             customer_report["cluster role"].append("Cluster role verification failed")
