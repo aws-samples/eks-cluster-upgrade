@@ -80,7 +80,7 @@ Display the eksupgrade version:
     logging.basicConfig(
         level=parsed_arguments.log_level.upper(),
         format="[%(levelname)s] : %(asctime)s : %(name)s : %(message)s",
-        datefmt="%d-%b-%y %H:%M:%S",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     main(parsed_arguments)
 
