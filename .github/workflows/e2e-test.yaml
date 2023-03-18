@@ -3,18 +3,19 @@ name: Cluster Upgrade tests
 
 on:
   workflow_dispatch:
-    trigger_deploy:
-      type: choice
-      required: true
-      options: ["true", "false"]
-      description: Select if you want to trigger a deploy
-    trigger_destroy:
-      options: ["true","false"]
-      default: "false"
-      description: Select if you want to trigger a destroy
+    inputs:
+      trigger_deploy:
+        type: choice
+        required: true
+        options: ["true", "false"]
+        description: Select if you want to trigger a deploy
+      trigger_destroy:
+        options: ["true","false"]
+        default: "false"
+        description: Select if you want to trigger a destroy
 
 
-concurrency: upgrade-1.23-test
+concurrency: upgrade-test
 
 jobs:
   e2e-tests:
@@ -23,6 +24,14 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    strategy:
+      matrix:
+        include:
+          - eks_version: 1_22
+            upgrade_version: 1.23
+          - eks_version: 1_23
+            upgrade_version: 1.24
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -39,10 +48,12 @@ jobs:
           sudo mv /tmp/eksctl /usr/local/bin
           eksctl version
       - name: create eks cluster
+        id: create_cluster
         if: ${{inputs.trigger_deploy == "true"}}
         run: |
-          eksctl create cluster -f .github/scripts/cluster_creation_1_22.yaml
+          eksctl create cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
       - name: install dependencies
+        id: install_deps
         if: ${{inputs.trigger_deploy == "true"}}
         run: |
           python3 -m pip install eksupgrade
@@ -54,10 +65,12 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: GithubActions-Session
       - name: Test pre-flight checks
+        id: preflight_checks
         if: ${{inputs.trigger_deploy == "true"}}
         run: |
-          eksupgrade eksup-cluster-1_22 1.23 us-east-1 --preflight
+          eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
       - name: Destroy the cluster
+        id: preflight_checks
         if: ${{inputs.trigger_destroy == "true"}}
         run: |
-          eksctl delete cluster -f .github/scripts/cluster_creation_1_22.yaml
+          eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
