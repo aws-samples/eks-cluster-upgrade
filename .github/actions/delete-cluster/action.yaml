@@ -1,0 +1,40 @@
+---
+name: Delete EKS Cluster
+description: 'Re-usable action to delete the active test clusters'
+
+inputs:
+  eks_version:
+    description: 'The Python version to be used during setup'
+    required: true
+  iam_role:
+    description: 'IAM role to be assumed by GitHub actions'
+    required: true
+  region:
+    description: 'AWS Region to be used'
+    required: true
+
+
+runs:
+  using: composite
+
+  steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ inputs.iam_role }}
+        aws-region: ${{ inputs.region }}
+        role-duration-seconds: 3600
+        role-session-name: GithubActions-Session
+    - name: setup eksctl
+      shell: bash
+      run: |
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+        eksctl version
+    - name: Destroy the cluster
+      shell: bash
+      id: destroy_cluster
+      run: |
+        cluster_version='${{ inputs.eks_version }}'
+        echo "Destroying the temporary cluster eksup-cluster-${cluster_version/./-}"
+        eksctl delete cluster -f .github/scripts/cluster_creation_${{inputs.eks_version}}.yaml

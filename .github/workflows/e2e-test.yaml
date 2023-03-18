@@ -27,6 +27,7 @@ jobs:
   create-cluster:
     if: ${{inputs.trigger_tests == 'true'}}
     name: Cluster creation
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -35,9 +36,14 @@ jobs:
       matrix:
         include:
           - eks_version: 1.22
+            cluster_suffix: "1-22"
             upgrade_version: 1.23
           - eks_version: 1.23
+            cluster_suffix: "1-23"
             upgrade_version: 1.24
+          - eks_version: 1.24
+            cluster_suffix: "1-24"
+            upgrade_version: 1.25
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -56,14 +62,14 @@ jobs:
       - name: create eks cluster
         id: create_cluster
         run: |
-          cluster_version="${{matrix.eks_version}}"
-          echo "Creating the cluster eksup-cluster-${cluster_version/./-}"
+          echo "Creating the cluster eksup-cluster-'${{matrix.cluster_suffix}}'"
           eksctl create cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
 
 
   cluster-upgrade-checks:
     name: Cluster Upgrade checks
     if: ${{inputs.trigger_tests == 'true'}}
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     needs: create-cluster
     permissions:
@@ -73,9 +79,14 @@ jobs:
       matrix:
         include:
           - eks_version: 1.22
+            cluster_suffix: "1-22"
             upgrade_version: 1.23
           - eks_version: 1.23
+            cluster_suffix: "1-23"
             upgrade_version: 1.24
+          - eks_version: 1.24
+            cluster_suffix: "1-24"
+            upgrade_version: 1.25
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -102,34 +113,35 @@ jobs:
       - name: Test no upgrade
         id: no_upgrade
         run: |
-          cluster_version="${{matrix.eks_version}}"
-          echo "Test the cluster eksup-cluster-${cluster_version/./-} with upgrade set to current version"
-          eksupgrade eksup-cluster-${cluster_version/./-} ${{matrix.eks_version}} us-east-1
+          echo "Test the cluster eksup-cluster-${{matrix.cluster_suffix}} with upgrade set to current version"
+          eksupgrade eksup-cluster-${{matrix.cluster_suffix}} ${{matrix.eks_version}} us-east-1
       - name: Test pre-flight checks
         id: preflight_checks
         run: |
-          echo "Running pre-flight checks on the cluster eksup-cluster-${cluster_version/./-} against version ${{matrix.upgrade_version}} "
-          eksupgrade eksup-cluster-${cluster_version/./-} ${{matrix.upgrade_version}} us-east-1 --preflight
+          echo "Running pre-flight checks on the cluster eksup-cluster-${{matrix.cluster_suffix}} against version ${{matrix.upgrade_version}} "
+          eksupgrade eksup-cluster-${{matrix.cluster_suffix}} ${{matrix.upgrade_version}} us-east-1 --preflight
       - name: Test standalone addon upgrade
         id: addon_upgrade
         run: |
-          echo "Running upgrade addon checks on the cluster eksup-cluster-${cluster_version/./-} with same control plane version "
-          # eksupgrade eksup-cluster-${cluster_version/./-} ${{matrix.eks_version}} us-east-1 --latest-addons
+          echo "Running upgrade addon checks on the cluster eksup-cluster-${{matrix.cluster_suffix}} with same control plane version "
+          # eksupgrade eksup-cluster-${{matrix.cluster_suffix}} ${{matrix.eks_version}} us-east-1 --latest-addons
       - name: Test cluster upgrade
         id: cluster_upgrade
         run: |
-          echo "Upgrading the cluster eksup-cluster-${cluster_version/./-} to version ${{matrix.upgrade_version}} "
-          # eksupgrade eksup-cluster-${cluster_version/./-} ${{matrix.upgrade_version}} us-east-1
+          echo "Upgrading the cluster eksup-cluster-${{matrix.cluster_suffix}} to version ${{matrix.upgrade_version}} "
+          # eksupgrade eksup-cluster-${{matrix.cluster_suffix}} ${{matrix.upgrade_version}} us-east-1
       - name: Destroy the cluster
         if: ${{inputs.trigger_destroy == 'true'}}
-        id: destroy_cluster
-        run: |
-          echo "Destroying the temporary cluster eksup-cluster-${cluster_version/./-}"
-          eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
+        uses: './.github/actions/delete-cluster'
+        with:
+          eks_version: ${{matrix.eks_version}}
+          iam_role: ${{ secrets.ROLE_TO_ASSUME }}
+          region: 'us-east-1'
 
   destroy-cluster:
     if: ${{inputs.trigger_destroy == 'true' && inputs.trigger_tests == 'false' }}
     name: Delete Active Clusters
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -138,28 +150,14 @@ jobs:
       matrix:
         include:
           - eks_version: 1.22
-            upgrade_version: 1.23
           - eks_version: 1.23
-            upgrade_version: 1.24
+          - eks_version: 1.24
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Delete cluster
+        uses: './.github/actions/delete-cluster'
         with:
-          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-          role-duration-seconds: 3600
-          role-session-name: GithubActions-Session
-      - name: setup eksctl
-        run: |
-          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-          sudo mv /tmp/eksctl /usr/local/bin
-          eksctl version
-      - name: Destroy the cluster
-        id: destroy_cluster
-        run: |
-          cluster_version="${{matrix.eks_version}}"
-          echo "Destroying the temporary cluster eksup-cluster-${cluster_version/./-}"
-          eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
-          echo "post delete"
+          eks_version: ${{matrix.eks_version}}
+          iam_role: ${{ secrets.ROLE_TO_ASSUME }}
+          region: 'us-east-1'
