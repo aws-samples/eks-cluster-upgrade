@@ -17,7 +17,7 @@ def get_package_dict(filename: str, base_path: str = "src/S3Files/"):
 
 
 def get_logger(logger_name):
-    """Get a logger object with handler to StreamHandler"""
+    """Get a logger object with handler set to StreamHandler"""
     logger = logging.getLogger(logger_name)
     console_handler = logging.StreamHandler(sys.stdout)
     log_formatter = logging.Formatter(
