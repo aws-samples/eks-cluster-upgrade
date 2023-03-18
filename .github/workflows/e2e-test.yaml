@@ -70,7 +70,7 @@ jobs:
         run: |
           eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
       - name: Destroy the cluster
-        id: preflight_checks
+        id: destroy_cluster
         if: ${{inputs.trigger_destroy == "true"}}
         run: |
           eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
