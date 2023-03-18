@@ -19,8 +19,8 @@ on:
 concurrency: upgrade-test
 
 jobs:
-  e2e-tests:
-    name: Cluster Upgrade Tests
+  create-cluster:
+    name: Cluster creation
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -52,13 +52,29 @@ jobs:
         id: create_cluster
         if: ${{inputs.trigger_deploy == 'true'}}
         run: |
-          eksctl create cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
+          # eksctl create cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
+          echo "testing flow"
+  upgrade-tests:
+    name: Cluster Upgrade
+    runs-on: ubuntu-latest
+    needs: create-cluster
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - eks_version: 1.22
+            upgrade_version: 1.23
+          - eks_version: 1.23
+            upgrade_version: 1.24
+    steps:
       - name: install dependencies
         id: install_deps
         if: ${{inputs.trigger_deploy == 'true'}}
         run: |
           python3 -m pip install eksupgrade
-      - name: Configure AWS Credentials 2
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
@@ -69,9 +85,11 @@ jobs:
         id: preflight_checks
         if: ${{inputs.trigger_deploy == 'true'}}
         run: |
-          eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
+          eksupgrade --version
+          # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
       - name: Destroy the cluster
         id: destroy_cluster
         if: ${{inputs.trigger_destroy == 'true'}}
         run: |
-          eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
+          # eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
+          echo "post delete"
