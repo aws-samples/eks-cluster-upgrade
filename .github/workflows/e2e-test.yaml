@@ -36,13 +36,13 @@ jobs:
       matrix:
         include:
           - eks_version: 1.22
-            cluster_suffix: "1-22"
+            cluster_suffix: 1-22
             upgrade_version: 1.23
           - eks_version: 1.23
-            cluster_suffix: "1-23"
+            cluster_suffix: 1-23
             upgrade_version: 1.24
           - eks_version: 1.24
-            cluster_suffix: "1-24"
+            cluster_suffix: 1-24
             upgrade_version: 1.25
     steps:
       - name: Checkout
@@ -79,13 +79,13 @@ jobs:
       matrix:
         include:
           - eks_version: 1.22
-            cluster_suffix: "1-22"
+            cluster_suffix: 1-22
             upgrade_version: 1.23
           - eks_version: 1.23
-            cluster_suffix: "1-23"
+            cluster_suffix: 1-23
             upgrade_version: 1.24
           - eks_version: 1.24
-            cluster_suffix: "1-24"
+            cluster_suffix: 1-24
             upgrade_version: 1.25
     steps:
       - name: Checkout
