@@ -1,10 +1,20 @@
 ---
-name: e2e-test
+name: Cluster Upgrade tests
 
 on:
   workflow_dispatch:
+    trigger_deploy:
+      type: choice
+      required: true
+      options: ["true", "false"]
+      description: Select if you want to trigger a deploy
+    trigger_destroy:
+      options: ["true","false"]
+      default: "false"
+      description: Select if you want to trigger a destroy
 
-concurrency: e2e-test
+
+concurrency: upgrade-1.23-test
 
 jobs:
   e2e-tests:
@@ -29,9 +39,11 @@ jobs:
           sudo mv /tmp/eksctl /usr/local/bin
           eksctl version
       - name: create eks cluster
+        if: ${{inputs.trigger_deploy == "true"}}
         run: |
-          eksctl create cluster -f .github/scripts/cluster_creation.yaml
+          eksctl create cluster -f .github/scripts/cluster_creation_1_22.yaml
       - name: install dependencies
+        if: ${{inputs.trigger_deploy == "true"}}
         run: |
           python3 -m pip install eksupgrade
       - name: Configure AWS Credentials 2
@@ -42,5 +54,10 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: GithubActions-Session
       - name: Test pre-flight checks
+        if: ${{inputs.trigger_deploy == "true"}}
         run: |
-          eksupgrade eksup-cluster 1.23 us-east-1 --preflight
+          eksupgrade eksup-cluster-1_22 1.23 us-east-1 --preflight
+      - name: Destroy the cluster
+        if: ${{inputs.trigger_destroy == "true"}}
+        run: |
+          eksctl delete cluster -f .github/scripts/cluster_creation_1_22.yaml
