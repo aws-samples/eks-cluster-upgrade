@@ -1,0 +1,46 @@
+---
+name: e2e-test
+
+on:
+  workflow_dispatch:
+
+concurrency: e2e-test
+
+jobs:
+  e2e-tests:
+    name: Cluster Upgrade Tests
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          role-duration-seconds: 3600
+          role-session-name: GithubActions-Session
+      - name: setup eksctl
+        run: |
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+          eksctl version
+      - name: create eks cluster
+        run: |
+          eksctl create cluster -f .github/scripts/cluster_creation.yaml
+      - name: install dependencies
+        run: |
+          python3 -m pip install eksupgrade
+      - name: Configure AWS Credentials 2
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          role-duration-seconds: 3600
+          role-session-name: GithubActions-Session
+      - name: Test pre-flight checks
+        run: |
+          eksupgrade eksup-cluster 1.23 us-east-1 --preflight
