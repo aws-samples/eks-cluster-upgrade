@@ -55,7 +55,6 @@ jobs:
       - name: create eks cluster
         id: create_cluster
         run: |
-          compati
           echo "Creating the cluster eksup-cluster-${matrix.eks_version/./-}"
           eksctl create cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
 
