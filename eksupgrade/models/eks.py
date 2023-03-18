@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import datetime
-import logging
 import re
 import time
 from abc import ABC
@@ -58,7 +57,9 @@ else:
     AutoScalingGroupsTypeTypeDef = object
     AutoScalingGroupTypeDef = object
 
-logger = logging.getLogger(__name__)
+from eksupgrade.utils import get_logger
+
+logger = get_logger(__name__)
 
 TOKEN_PREFIX: str = "k8s-aws-v1"
 TOKEN_HEADER_KEY: str = "x-k8s-aws-id"

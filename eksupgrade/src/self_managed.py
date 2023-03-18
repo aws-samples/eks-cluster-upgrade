@@ -1,15 +1,16 @@
 """Define the self-managed node logic."""
 from __future__ import annotations
 
-import logging
 import time
 from typing import Any, Dict, List, Optional
 
 import boto3
 
+from eksupgrade.utils import get_logger
+
 from .latest_ami import get_latest_ami
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def status_of_cluster(cluster_name: str, region: str) -> List[str]:

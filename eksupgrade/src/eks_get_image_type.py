@@ -1,14 +1,15 @@
 """Define the image type logic for EKS."""
 from __future__ import annotations
 
-import logging
 from typing import Optional
 
 import boto3
 
+from eksupgrade.utils import get_logger
+
 from .k8s_client import find_node
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def image_type(node_type: str, image_id: str, region: str) -> Optional[str]:
