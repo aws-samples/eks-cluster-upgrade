@@ -4,11 +4,14 @@ name: Cluster Upgrade tests
 on:
   workflow_dispatch:
     inputs:
-      trigger_deploy:
+      eksupgrade_version:
+        required: true
+        description: Select the eksupgrade version you want to use
+      trigger_tests:
         type: choice
         required: true
         options: ['true', 'false']
-        description: Select if you want to trigger a deploy
+        description: Select if you want to trigger cluster creation and tests
       trigger_destroy:
         type: choice
         options: ['true', 'false']
@@ -20,6 +23,7 @@ concurrency: upgrade-test
 
 jobs:
   create-cluster:
+    if: ${{inputs.trigger_tests == 'true'}}
     name: Cluster creation
     runs-on: ubuntu-latest
     permissions:
@@ -32,7 +36,6 @@ jobs:
             upgrade_version: 1.23
           - eks_version: 1.23
             upgrade_version: 1.24
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -50,12 +53,13 @@ jobs:
           eksctl version
       - name: create eks cluster
         id: create_cluster
-        if: ${{inputs.trigger_deploy == 'true'}}
         run: |
           # eksctl create cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
           echo "testing flow"
-  upgrade-tests:
-    name: Cluster Upgrade
+
+
+  cluster-upgrade-checks:
+    name: Cluster Upgrade checks
     runs-on: ubuntu-latest
     needs: create-cluster
     permissions:
@@ -69,11 +73,77 @@ jobs:
           - eks_version: 1.23
             upgrade_version: 1.24
     steps:
-      - name: install dependencies
-        id: install_deps
-        if: ${{inputs.trigger_deploy == 'true'}}
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: install latest utility version
+        id: install_deps_latest
+        if: ${{inputs.trigger_tests == 'true' && inputs.eksupgrade_version == 'latest' }}
         run: |
           python3 -m pip install eksupgrade
+      - name: install utility version from a ref
+        id: install_deps_from_ref
+        if: ${{inputs.trigger_tests == 'true' && inputs.eksupgrade_version != 'latest' }}
+        run: |
+          #python3 -m pip install git+ssh://git@github.com/quixoticmonk/eks-cluster-upgrade.git@${{inputs.eksupgrade_version}}
+          exit 1 # TODO fix it with the relevant PR number or branch name
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+          role-session-name: GithubActions-Session
+      - name: Test no upgrade
+        id: no_upgrade
+        if: ${{inputs.trigger_tests == 'true'}}
+        run: |
+          eksupgrade --version
+          # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.eks_version}} us-east-1
+      - name: Test pre-flight checks
+        id: preflight_checks
+        if: ${{inputs.trigger_tests == 'true'}}
+        run: |
+          eksupgrade --version
+          # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
+      - name: Test standalone addon upgrade
+        id: addon_upgrade
+        if: ${{inputs.trigger_tests == 'true'}}
+        run: |
+          eksupgrade --version
+          # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.eks_version}} us-east-1 --latest-addons
+      - name: Test cluster upgrade
+        id: cluster_upgrade
+        if: ${{inputs.trigger_tests == 'true'}}
+        run: |
+          eksupgrade --version
+          # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1
+      - name: Destroy the cluster
+        if: ${{inputs.trigger_destroy == 'true' && inputs.trigger_tests == 'true' }}
+        id: destroy_cluster
+        run: |
+          # eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
+          echo "post delete"
+
+  destroy-cluster:
+    if: ${{inputs.trigger_destroy == 'true' && inputs.trigger_tests == 'false' }}
+    name: Delete Active Clusters
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - eks_version: 1.22
+            upgrade_version: 1.23
+          - eks_version: 1.23
+            upgrade_version: 1.24
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -81,15 +151,13 @@ jobs:
           aws-region: us-east-1
           role-duration-seconds: 3600
           role-session-name: GithubActions-Session
-      - name: Test pre-flight checks
-        id: preflight_checks
-        if: ${{inputs.trigger_deploy == 'true'}}
+      - name: setup eksctl
         run: |
-          eksupgrade --version
-          # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+          eksctl version
       - name: Destroy the cluster
         id: destroy_cluster
-        if: ${{inputs.trigger_destroy == 'true'}}
         run: |
           # eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
           echo "post delete"
