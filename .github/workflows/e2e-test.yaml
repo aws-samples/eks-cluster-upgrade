@@ -89,7 +89,7 @@ jobs:
         id: install_deps_from_ref
         if: ${{inputs.eksupgrade_version != 'latest' }}
         run: |
-          #python3 -m pip install git+ssh://git@github.com/quixoticmonk/eks-cluster-upgrade.git@${{inputs.eksupgrade_version}}
+          #python3 -m pip install git+ssh://git@github.com/aws-samples/eks-cluster-upgrade.git@${{inputs.eksupgrade_version}}
           exit 1 # TODO fix it with the relevant PR number or branch name
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
