@@ -91,7 +91,7 @@ jobs:
         id: install_deps_from_ref
         if: ${{inputs.eksupgrade_version == 'main' }}
         run: |
-          python3 -m pip install git+ssh://git@github.com/aws-samples/eks-cluster-upgrade.git@main
+          python3 -m pip install git+https://github.com/aws-samples/eks-cluster-upgrade.git@main
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
