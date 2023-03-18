@@ -1,11 +1,11 @@
 """Define the AMI specific logic."""
 from __future__ import annotations
 
-import logging
-
 import boto3
 
-logger = logging.getLogger(__name__)
+from eksupgrade.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_latest_ami(cluster_version: str, instance_type: str, image_to_search: str, region: str) -> str:

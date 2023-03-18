@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import datetime
-import logging
 import time
 import uuid
 from typing import Any, Dict, List, Optional
 
 import boto3
 
-logger = logging.getLogger(__name__)
+from eksupgrade.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def status_of_cluster(cluster_name: str, region: str) -> List[str]:

@@ -7,7 +7,6 @@ Attributes:
 from __future__ import annotations
 
 import base64
-import logging
 import queue
 import re
 import threading
@@ -29,9 +28,9 @@ from botocore.signers import RequestSigner
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 
-from eksupgrade.utils import get_package_dict
+from eksupgrade.utils import get_logger, get_package_dict
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 queue = queue.Queue()
 

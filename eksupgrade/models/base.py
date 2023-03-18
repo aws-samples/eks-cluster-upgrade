@@ -1,7 +1,6 @@
 """Define the base models to be used across the EKS upgrade tool."""
 from __future__ import annotations
 
-import logging
 from abc import ABC
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -20,7 +19,9 @@ else:
     EKSClient = object
     STSClient = object
 
-logger = logging.getLogger(__name__)
+from eksupgrade.utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
