@@ -28,9 +28,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - eks_version: 1_22
+          - eks_version: 1.22
             upgrade_version: 1.23
-          - eks_version: 1_23
+          - eks_version: 1.23
             upgrade_version: 1.24
 
     steps:
@@ -72,6 +72,6 @@ jobs:
           eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
       - name: Destroy the cluster
         id: destroy_cluster
-        if: ${{inputs.trigger_destroy == 'true'}}
+        if: ${{inputs.trigger_destroy == 'true' or }}
         run: |
           eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
