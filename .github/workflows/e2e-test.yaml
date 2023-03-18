@@ -7,6 +7,7 @@ on:
       eksupgrade_version:
         required: true
         description: Select the eksupgrade version you want to use
+        default: 'latest'
       trigger_tests:
         type: choice
         required: true
@@ -16,7 +17,7 @@ on:
         type: choice
         options: ['true', 'false']
         default: 'false'
-        description: Select if you want to trigger a destroy
+        description: Destroy active test clusters ?
 
 
 concurrency: upgrade-test
@@ -60,6 +61,7 @@ jobs:
 
   cluster-upgrade-checks:
     name: Cluster Upgrade checks
+    if: ${{inputs.trigger_tests == 'true'}}
     runs-on: ubuntu-latest
     needs: create-cluster
     permissions:
@@ -80,12 +82,12 @@ jobs:
           python-version: '3.10'
       - name: install latest utility version
         id: install_deps_latest
-        if: ${{inputs.trigger_tests == 'true' && inputs.eksupgrade_version == 'latest' }}
+        if: ${{inputs.eksupgrade_version == 'latest' }}
         run: |
           python3 -m pip install eksupgrade
       - name: install utility version from a ref
         id: install_deps_from_ref
-        if: ${{inputs.trigger_tests == 'true' && inputs.eksupgrade_version != 'latest' }}
+        if: ${{inputs.eksupgrade_version != 'latest' }}
         run: |
           #python3 -m pip install git+ssh://git@github.com/quixoticmonk/eks-cluster-upgrade.git@${{inputs.eksupgrade_version}}
           exit 1 # TODO fix it with the relevant PR number or branch name
@@ -98,30 +100,26 @@ jobs:
           role-session-name: GithubActions-Session
       - name: Test no upgrade
         id: no_upgrade
-        if: ${{inputs.trigger_tests == 'true'}}
         run: |
           eksupgrade --version
           # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.eks_version}} us-east-1
       - name: Test pre-flight checks
         id: preflight_checks
-        if: ${{inputs.trigger_tests == 'true'}}
         run: |
           eksupgrade --version
           # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1 --preflight
       - name: Test standalone addon upgrade
         id: addon_upgrade
-        if: ${{inputs.trigger_tests == 'true'}}
         run: |
           eksupgrade --version
           # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.eks_version}} us-east-1 --latest-addons
       - name: Test cluster upgrade
         id: cluster_upgrade
-        if: ${{inputs.trigger_tests == 'true'}}
         run: |
           eksupgrade --version
           # eksupgrade eksup-cluster-${{matrix.eks_version}} ${{matrix.upgrade_version}} us-east-1
       - name: Destroy the cluster
-        if: ${{inputs.trigger_destroy == 'true' && inputs.trigger_tests == 'true' }}
+        if: ${{inputs.trigger_destroy == 'true'}}
         id: destroy_cluster
         run: |
           # eksctl delete cluster -f .github/scripts/cluster_creation_${{matrix.eks_version}}.yaml
