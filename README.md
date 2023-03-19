@@ -2,6 +2,7 @@
 
 <p align="center">
 <a href="https://github.com/aws-samples/eks-cluster-upgrade/actions/workflows/validate.yaml"><img alt="Validation Status" src="https://github.com/aws-samples/eks-cluster-upgrade/actions/workflows/validate.yaml/badge.svg?branch=main&event=push"></a>
+<a href="https://github.com/aws-samples/eks-cluster-upgrade/actions/workflows/e2e-test.yaml"><img alt="E2E Cluster Upgrade" src="https://github.com/aws-samples/eks-cluster-upgrade/actions/workflows/e2e-test.yaml/badge.svg?branch=main"></a>
 <a href="https://codecov.io/github/aws-samples/eks-cluster-upgrade?branch=main"><img alt="Coverage Status" src="https://codecov.io/github/aws-samples/eks-cluster-upgrade/coverage.svg?branch=main"></a>
 <a href="https://pypi.org/project/eksupgrade/"><img alt="PyPI" src="https://img.shields.io/pypi/v/eksupgrade"></a>
 <a href="https://pepy.tech/project/eksupgrade"><img alt="Downloads" src="https://pepy.tech/badge/eksupgrade"></a>
@@ -28,7 +29,7 @@ There are a number of version compatibility constraints, health checks, etc., be
 5. Subnets - A minimum of 4-5 free IPs are required when doing a cluster upgrade to launch new nodes and node groups with the old ones to keep the services of the cluster running while the upgrade is going on. So check on the existence of the free IPs is performed.
 6. Cluster Roles - There are a lot of important cluster roles required during the upgrade related to addons, nodes, and other components of the cluster without which the cluster upgrade cannot be executed successfully.
 7. Pod Security Policy - EKS privileged role has to be checked to be present with the current pod security policy. (deprecated in Kubernetes v1.21, and removed from Kubernetes in v1.25)
-8. Cluster addons - The cluster addons like kube-proxy, VPC CNI and CoreDNS are essential for running various services across the cluster. The parameters available on these addons which are customized by the users on the target cluster have to be captured while upgrading so that they are to added back to maintain service availability. 
+8. Cluster addons - The cluster addons like kube-proxy, VPC CNI and CoreDNS are essential for running various services across the cluster. The parameters available on these addons which are customized by the users on the target cluster have to be captured while upgrading so that they are to added back to maintain service availability.
 9. Pod Disruption Budget - The existence of PDB has to be checked in the cluster, and minimum and maximum available with it has to be taken into account while upgrading.
 10. Horizontal Pod and Cluster Autoscaler - As the other components are upgraded to the compatible image version, a check is performed to see if Cluster or Horizontal Pod Autoscaler are present. They are reviewed to upgrade to a compatible version with respect to the control plane.
 
