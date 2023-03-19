@@ -1,5 +1,5 @@
 ---
-name: Cluster Upgrade tests
+name: Cluster Upgrade tests - workflow
 
 on:
   workflow_call:
@@ -52,8 +52,8 @@ jobs:
       - name: create eks cluster
         id: create_cluster
         run: |
-          echo "Creating the cluster eksup-cluster-'${{input.cluster_suffix}}'"
-          eksctl create cluster -f .github/scripts/cluster_creation_${{input.current_version}}.yaml
+          echo "Creating the cluster eksup-cluster-'${{inputs.cluster_suffix}}'"
+          eksctl create cluster -f .github/scripts/cluster_creation_${{inputs.current_version}}.yaml
 
 
   cluster-upgrade-check:
@@ -90,27 +90,27 @@ jobs:
       - name: Test no upgrade
         id: no_upgrade
         run: |
-          echo "Test the cluster eksup-cluster-${{input.cluster_suffix}} with upgrade set to current version"
-          eksupgrade eksup-cluster-${{input.cluster_suffix}} ${{input.current_version}} us-east-1
+          echo "Test the cluster eksup-cluster-${{inputs.cluster_suffix}} with upgrade set to current version"
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} us-east-1
       - name: Test pre-flight checks
         id: preflight_checks
         run: |
-          echo "Running pre-flight checks on the cluster eksup-cluster-${{input.cluster_suffix}} against version ${{input.target_version}} "
-          eksupgrade eksup-cluster-${{input.cluster_suffix}} ${{input.target_version}} us-east-1 --preflight
+          echo "Running pre-flight checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} against version ${{inputs.target_version}} "
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} us-east-1 --preflight
       - name: Test standalone addon upgrade
         id: addon_upgrade
         run: |
-          echo "Running upgrade addon checks on the cluster eksup-cluster-${{input.cluster_suffix}} with same control plane version "
-          # eksupgrade eksup-cluster-${{input.cluster_suffix}} ${{input.current_version}} us-east-1 --latest-addons
+          echo "Running upgrade addon checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} with same control plane version "
+          # eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} us-east-1 --latest-addons
       - name: Test cluster upgrade
         id: cluster_upgrade
         run: |
-          echo "Upgrading the cluster eksup-cluster-${{input.cluster_suffix}} to version ${{input.target_version}} "
-          # eksupgrade eksup-cluster-${{input.cluster_suffix}} ${{input.target_version}} us-east-1
+          echo "Upgrading the cluster eksup-cluster-${{inputs.cluster_suffix}} to version ${{inputs.target_version}} "
+          # eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} us-east-1
       - name: Destroy the cluster
         if: ${{inputs.trigger_destroy == 'true'}}
         uses: './.github/actions/delete-cluster'
         with:
-          eks_version: ${{input.current_version}}
+          eks_version: ${{inputs.current_version}}
           iam_role: ${{ secrets.git_role }}
           region: 'us-east-1'
