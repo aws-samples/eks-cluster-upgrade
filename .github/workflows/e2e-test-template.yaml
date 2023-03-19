@@ -1,0 +1,116 @@
+---
+name: Cluster Upgrade tests - workflow
+
+on:
+  workflow_call:
+    inputs:
+      eksupgrade_version:
+        type: string
+        default: 'latest'
+      trigger_tests:
+        type: string
+        default: 'true'
+      trigger_destroy:
+        type: string
+        default: 'true'
+      current_version:
+        type: string
+        required: true
+      cluster_suffix:
+        type: string
+        required: true
+      target_version:
+        type: string
+        required: true
+    secrets:
+      git_role:
+        required: true
+
+jobs:
+  create-cluster:
+    name: Cluster creation
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.git_role }}
+          aws-region: us-east-1
+          role-duration-seconds: 3600
+          role-session-name: GithubActions-Session
+      - name: setup eksctl
+        run: |
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+          eksctl version
+      - name: create eks cluster
+        id: create_cluster
+        run: |
+          echo "Creating the cluster eksup-cluster-'${{inputs.cluster_suffix}}'"
+          eksctl create cluster -f .github/scripts/cluster_creation_${{inputs.current_version}}.yaml
+
+
+  cluster-upgrade-check:
+    name: Cluster Upgrade check
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    needs: create-cluster
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: install latest utility version
+        id: install_deps_latest
+        if: ${{inputs.eksupgrade_version == 'latest' }}
+        run: |
+          python3 -m pip install eksupgrade
+      - name: install utility version from a ref
+        id: install_deps_from_ref
+        if: ${{inputs.eksupgrade_version == 'main' }}
+        run: |
+          python3 -m pip install git+https://github.com/aws-samples/eks-cluster-upgrade.git@main
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.git_role }}
+          aws-region: us-east-1
+          role-duration-seconds: 3600
+          role-session-name: GithubActions-Session
+      - name: Test no upgrade
+        id: no_upgrade
+        run: |
+          echo "Test the cluster eksup-cluster-${{inputs.cluster_suffix}} with upgrade set to current version"
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} us-east-1
+      - name: Test pre-flight checks
+        id: preflight_checks
+        run: |
+          echo "Running pre-flight checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} against version ${{inputs.target_version}} "
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} us-east-1 --preflight
+      - name: Test standalone addon upgrade
+        id: addon_upgrade
+        run: |
+          echo "Running upgrade addon checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} with same control plane version "
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} us-east-1 --latest-addons
+      - name: Test cluster upgrade
+        id: cluster_upgrade
+        run: |
+          echo "Upgrading the cluster eksup-cluster-${{inputs.cluster_suffix}} to version ${{inputs.target_version}} "
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} us-east-1
+      - name: Destroy the cluster
+        if: ${{inputs.trigger_destroy == 'true'}}
+        uses: './.github/actions/delete-cluster'
+        with:
+          eks_version: ${{inputs.current_version}}
+          iam_role: ${{ secrets.git_role }}
+          region: 'us-east-1'

@@ -1,0 +1,79 @@
+---
+name: Cluster Upgrade tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      eksupgrade_version:
+        type: choice
+        options: ['latest', 'main']
+        description: Select the eksupgrade version you want to use
+        default: 'latest'
+      trigger_tests:
+        type: choice
+        options: ['true', 'false']
+        description: Select if you want to trigger cluster creation and tests
+        default: 'true'
+      trigger_destroy:
+        type: choice
+        options: ['true', 'false']
+        default: 'true'
+        description: Destroy active test clusters ?
+
+
+concurrency: upgrade-test
+
+jobs:
+  cluster-upgrade-checks:
+    if: ${{inputs.trigger_tests == 'true'}}
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - current_version: 1.22
+            cluster_suffix: 1-22
+            target_version: 1.23
+          - current_version: 1.23
+            cluster_suffix: 1-23
+            target_version: 1.24
+          - current_version: 1.24
+            cluster_suffix: 1-24
+            target_version: 1.25
+    uses: ./.github/workflows/e2e-test-template.yaml
+    with:
+      eksupgrade_version: ${{github.event.inputs.eksupgrade_version}}
+      trigger_tests: ${{github.event.inputs.trigger_tests}}
+      trigger_destroy: ${{github.event.inputs.trigger_destroy}}
+      current_version: ${{matrix.current_version}}
+      cluster_suffix: ${{matrix.cluster_suffix}}
+      target_version: ${{matrix.target_version}}
+
+    secrets:
+      git_role: ${{ secrets.ROLE_TO_ASSUME }}
+
+
+  destroy-cluster:
+    if: ${{inputs.trigger_destroy == 'true' && inputs.trigger_tests == 'false' }}
+    name: Delete Active Clusters
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - eks_version: 1.22
+          - eks_version: 1.23
+          - eks_version: 1.24
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Delete cluster
+        uses: './.github/actions/delete-cluster'
+        with:
+          eks_version: ${{matrix.eks_version}}
+          iam_role: ${{ secrets.ROLE_TO_ASSUME }}
+          region: 'us-east-1'

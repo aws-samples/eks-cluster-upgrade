@@ -1,0 +1,23 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eksup-cluster-1-24
+  region: us-east-1
+  version: "1.24"
+managedNodeGroups:
+  - name: eksup-managed-ng
+    instanceType: t2.large
+    minSize: 2
+    maxSize: 2
+    desiredCapacity: 2
+    iam:
+      withAddonPolicies:
+        externalDNS: true
+        certManager: true
+addons:
+- name: vpc-cni
+- name: coredns
+- name: kube-proxy
+availabilityZones: ['us-east-1a','us-east-1b']
