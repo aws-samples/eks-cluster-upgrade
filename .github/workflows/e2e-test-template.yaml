@@ -101,12 +101,12 @@ jobs:
         id: addon_upgrade
         run: |
           echo "Running upgrade addon checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} with same control plane version "
-          # eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} us-east-1 --latest-addons
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} us-east-1 --latest-addons
       - name: Test cluster upgrade
         id: cluster_upgrade
         run: |
           echo "Upgrading the cluster eksup-cluster-${{inputs.cluster_suffix}} to version ${{inputs.target_version}} "
-          # eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} us-east-1
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} us-east-1
       - name: Destroy the cluster
         if: ${{inputs.trigger_destroy == 'true'}}
         uses: './.github/actions/delete-cluster'
