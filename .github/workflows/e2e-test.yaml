@@ -25,6 +25,7 @@ concurrency: upgrade-test
 
 jobs:
   cluster-upgrade-checks:
+    if: ${{inputs.trigger_tests == 'true'}}
     strategy:
       matrix:
         include:
@@ -37,7 +38,7 @@ jobs:
           - current_version: 1.24
             cluster_suffix: 1-24
             target_version: 1.25
-    uses: ./github/wofkflows/e2e-test-template.yaml
+    uses: ./github/workflows/e2e-test-template.yaml
     with:
       eksupgrade_version: ${{github.event.inputs.eksupgrade_version}}
       trigger_tests: ${{github.event.inputs.trigger_tests}}
