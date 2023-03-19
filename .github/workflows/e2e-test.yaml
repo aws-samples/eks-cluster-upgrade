@@ -26,6 +26,9 @@ concurrency: upgrade-test
 jobs:
   cluster-upgrade-checks:
     if: ${{inputs.trigger_tests == 'true'}}
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix:
         include:
