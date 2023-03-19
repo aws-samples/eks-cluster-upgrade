@@ -1,5 +1,5 @@
 ---
-name: Cluster Upgrade tests
+name: E2E Cluster Upgrade
 
 on:
   workflow_dispatch:
