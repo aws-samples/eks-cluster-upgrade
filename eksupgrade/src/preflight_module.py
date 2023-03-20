@@ -331,7 +331,6 @@ def addon_version(
                     "env": daemon_set_item.spec.template.spec.containers[0].env,
                 }
                 version = version_str.split(".")
-                echo_info(f"VPC CNI found version: {version} - version_str: {version_str}")
                 echo_info(f"Likely desired vpc-cni version: {cni_target_version}")
                 check_pods_running("aws-node", report, errors)
                 if int("".join(version)) >= 170:
