@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import boto3
 
-from eksupgrade.utils import get_logger
+from eksupgrade.utils import echo_error, get_logger
 
 logger = get_logger(__name__)
 
@@ -35,5 +35,5 @@ def get_latest_ami(cluster_version: str, instance_type: str, image_to_search: st
     response = ssm.get_parameters(Names=names)
     if response.get("Parameters"):
         return response.get("Parameters")[0]["Value"]
-    logger.error("Couldn't find the latest image - please retry the script!")
+    echo_error("Couldn't find the latest image - please retry the script!")
     raise Exception("Couldn't Find Latest Image Retry The Script")

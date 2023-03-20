@@ -115,58 +115,28 @@ eksupgrade --help
 ```
 
 ```sh
-usage: eksupgrade [-h] [--pass_vpc] [--max_retry MAX_RETRY] [--force]
-                  [--preflight] [--disable-checks] [--parallel]
-                  [--latest-addons] [--log-level LOG_LEVEL] [--version]
-                  name version region
+ Usage: eksupgrade [OPTIONS] CLUSTER_NAME CLUSTER_VERSION REGION
 
-Amazon EKS cluster upgrade
+ Run eksupgrade against a target cluster.
 
-positional arguments:
-  name                  Cluster Name
-  version               new version which you want to update
-  region                The AWS region where the cluster resides
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --pass_vpc            this --pass-vpc will skip the vpc cni upgrade
-  --max_retry MAX_RETRY
-                        you can specify max retry or else by default it is 2
-  --force               force pod eviction when you have pdb
-  --preflight           Run pre-flight check without upgrade
-  --disable-checks      Totally disable the pre-flight and post-flight
-                        checks during upgrade scenarios
-  --parallel            Upgrade all nodegroups in parallel
-  --latest-addons       Upgrade addons to the latest eligible version
-                        instead of default
-  --log-level LOG_LEVEL
-                        The log level to be displayed in the console.
-                        Default to: INFO
-  --version             show program's version number and exit
-
-example:
-
-  eksupgrade <name> <version> <region>
-
-Force pod eviction when you have PDB (Pod Disruption Budget):
-
-  eksupgrade <name> <version> <region>n --force
-
-Skip VPC CNI upgrade:
-
-  eksupgrade <name> <version> <region> --pass_vpc
-
-Skip upgrade workflow:
-
-  eksupgrade <name> <version> <region> --preflight
-
-Set log level to console (default to INFO):
-
-  eksupgrade <name> <version> <region> --log-level debug
-
-Display the eksupgrade version:
-
-  eksupgrade --version
+╭─ Arguments ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    cluster_name         TEXT  The name of the cluster to be upgraded [default: None] [required]                                                                                                                   │
+│ *    cluster_version      TEXT  The target Kubernetes version to upgrade the cluster to [default: None] [required]                                                                                                  │
+│ *    region               TEXT  The AWS region where the target cluster resides [default: None] [required]                                                                                                          │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --max-retry                                    INTEGER  The most number of times to retry an upgrade [default: 2]                                                                                                   │
+│ --force                 --no-force                      Force the upgrade (e.g. pod eviction with PDB) [default: no-force]                                                                                          │
+│ --preflight             --no-preflight                  Run pre-flight check without upgrade [default: no-preflight]                                                                                                │
+│ --parallel              --no-parallel                   Upgrade all nodegroups in parallel [default: no-parallel]                                                                                                   │
+│ --latest-addons         --no-latest-addons              Upgrade addons to the latest eligible version instead of default [default: no-latest-addons]                                                                │
+│ --disable-checks        --no-disable-checks             Disable the pre-flight and post-flight checks during upgrade scenarios [default: no-disable-checks]                                                         │
+│ --interactive           --no-interactive                If enabled, prompt the user for confirmations [default: interactive]                                                                                        │
+│ --version                                               Display the current eksupgrade version                                                                                                                      │
+│ --install-completion                                    Install completion for the current shell.                                                                                                                   │
+│ --show-completion                                       Show completion for the current shell, to copy it or customize the installation.                                                                            │
+│ --help                                                  Show this message and exit.                                                                                                                                 │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ## Security

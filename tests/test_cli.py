@@ -1,24 +1,20 @@
 """Test the functionality of the CLI module."""
-import pytest
+from typer.testing import CliRunner
 
-from eksupgrade.cli import entry
+from eksupgrade.cli import app
+
+runner = CliRunner()
 
 
-def test_entry_version_arg(capsys) -> None:
+def test_entry_version_arg() -> None:
     """Test the entry method with version argument."""
-    with pytest.raises(SystemExit):
-        entry(["--version"])
-
-    captured = capsys.readouterr()
-    result = captured.out
-    assert result.startswith("eksupgrade")
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert "eksupgrade version" in result.stdout
 
 
-def test_entry_no_arg(capsys) -> None:
+def test_entry_no_arg() -> None:
     """Test the entry method with no arguments."""
-    with pytest.raises(SystemExit):
-        entry()
-
-    captured = capsys.readouterr()
-    result = captured.out
-    assert result.startswith("")
+    result = runner.invoke(app, [])
+    assert result.exit_code == 2
+    assert "OPTIONS" in result.stdout

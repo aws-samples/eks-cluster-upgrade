@@ -28,7 +28,7 @@ from botocore.signers import RequestSigner
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
 
-from eksupgrade.utils import get_logger, get_package_dict
+from eksupgrade.utils import echo_error, echo_info, get_logger
 
 logger = get_logger(__name__)
 
@@ -52,8 +52,8 @@ class StatsWorker(threading.Thread):
             )
             # signals to queue job is done
             if not status:
-                logger.error(
-                    "Pod not started! Cluster: %s - Namespace: %s - New Pod: %s", cluster_name, namespace, new_pod_name
+                echo_error(
+                    f"Pod not started! Cluster: {cluster_name} - Namespace: {namespace} - New Pod: {new_pod_name}"
                 )
                 raise Exception("Pod Not Started", new_pod_name)
 
@@ -109,10 +109,8 @@ def unschedule_old_nodes(cluster_name: str, node_name: str, region: str) -> None
         body = {"spec": {"unschedulable": True}}
         core_v1_api.patch_node(node_name, body)
     except Exception as e:
-        logger.error(
-            "Exception encountered while attempting to unschedule old nodes - cluster: %s - node: %s",
-            cluster_name,
-            node_name,
+        echo_error(
+            f"Exception encountered while attempting to unschedule old nodes - cluster: {cluster_name} - node: {node_name}",
         )
         raise e
     return
@@ -126,15 +124,15 @@ def watcher(cluster_name: str, name: str, region: str) -> bool:
 
     try:
         for event in _watcher.stream(core_v1_api.list_pod_for_all_namespaces, timeout_seconds=30):
-            logger.info("%s %s", event["type"], event["object"].metadata.name)
+            echo_info(f"{event['type']} {event['object'].metadata.name}")
 
             if event["type"] == "DELETED" and event["object"].metadata.name == name:
                 _watcher.stop()
                 return True
         return False
     except Exception as e:
-        logger.error(
-            "Exception encountered in watcher method against cluster: %s name: %s Error: %s", cluster_name, name, e
+        echo_error(
+            f"Exception encountered in watcher method against cluster: {cluster_name} name: {name} Error: {e}",
         )
         raise e
 
@@ -168,19 +166,14 @@ def drain_nodes(cluster_name, node_name, forced, region) -> Optional[str]:
                         drain_nodes(cluster_name, i.metadata.name, forced=forced, region=region)
                         retry += 1
                     if retry == 2:
-                        logger.error(
-                            "Exception encountered - unable to delete the node: %s in cluster: %s",
-                            i.metadata.name,
-                            cluster_name,
+                        echo_error(
+                            f"Exception encountered - unable to delete the node: {i.metadata.name} in cluster: {cluster_name}",
                         )
                         raise Exception("Error Not able to delete the Node" + i.metadata.name)
                     return None
             except Exception as e:
-                logger.error(
-                    "Exception encountered while attempting to drain nodes! Node: %s Cluster: %s - Error: %s",
-                    node_name,
-                    cluster_name,
-                    e,
+                echo_error(
+                    f"Exception encountered while attempting to drain nodes! Node: {node_name} Cluster: {cluster_name} - Error: {e}",
                 )
                 raise Exception("Unable to Delete the Node")
 
@@ -193,11 +186,8 @@ def delete_node(cluster_name: str, node_name: str, region: str) -> None:
         core_v1_api.delete_node(node_name)
         return
     except ApiException as e:
-        logger.error(
-            "Exception encountered attempting to delete a node! Cluster: %s - Node: %s - Error: %s",
-            cluster_name,
-            node_name,
-            e,
+        echo_error(
+            f"Exception encountered attempting to delete a node! Cluster: {cluster_name} - Node: {node_name} - Error: {e}",
         )
         raise e
 
@@ -232,7 +222,7 @@ def find_node(cluster_name: str, instance_id: str, operation: str, region: str) 
     if operation == "os_type":
         for i in nodes:
             if i[0] == instance_id:
-                logger.info(i[0])
+                echo_info(i[0])
                 return i[-1]
         return "NAN"
     return "NAN"
@@ -263,11 +253,8 @@ def sort_pods(
 ) -> str:
     """Sort the pod results."""
     if not count:
-        logger.error(
-            "Pod has no associated new pod! Cluster: %s - Namespace: %s - Pod Name: %s",
-            cluster_name,
-            namespace,
-            pod_name,
+        echo_error(
+            f"Pod has no associated new pod! Cluster: {cluster_name} - Namespace: {namespace} - Pod Name: {pod_name}",
         )
         raise Exception("Pod has No associated New Launch")
 
@@ -280,14 +267,12 @@ def sort_pods(
         else:
             pod_list = core_v1_api.list_namespaced_pod(namespace=namespace, label_selector=f"k8s-app={pod_name}")
     except Exception as e:
-        logger.error(
-            "Exception encountered while attempting to get the pod list and sort_pods - cluster: %s, error: %s",
-            cluster_name,
-            e,
+        echo_error(
+            f"Exception encountered while attempting to get the pod list and sort_pods - cluster: {cluster_name}, error: {e}",
         )
         return "Not Found"
 
-    logger.info("Total Pods With %s = %s", pod_name, len(pod_list.items))
+    echo_info(f"Total Pods With {pod_name} = {len(pod_list.items)}")
     for i in pod_list.items:
         pods_nodes.append([i.metadata.name, i.metadata.creation_timestamp])
 
@@ -378,11 +363,11 @@ def cluster_auto_enable_disable(cluster_name: str, operation: str, mx_val: int, 
     elif operation == "start":
         body = {"spec": {"replicas": mx_val}}
     else:
-        logger.error("Operation must be either pause or start to auto_enable_disable!")
+        echo_error("Operation must be either pause or start to auto_enable_disable!")
         raise NotImplementedError("Operation must be either pause or start!")
 
     try:
         api.patch_namespaced_deployment(name="cluster-autoscaler", namespace="kube-system", body=body)
     except Exception as e:
-        logger.error("Exception encountered while running auto enable disable - Error: %s", e)
+        echo_error(f"Exception encountered while running auto enable disable - Error: {e}")
         raise e

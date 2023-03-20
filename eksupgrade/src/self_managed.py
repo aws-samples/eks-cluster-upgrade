@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import boto3
 
-from eksupgrade.utils import get_logger
+from eksupgrade.utils import echo_error, echo_info, get_logger
 
 from .latest_ami import get_latest_ami
 
@@ -19,7 +19,7 @@ def status_of_cluster(cluster_name: str, region: str) -> List[str]:
     response = client.describe_cluster(name=cluster_name)
     status = response["cluster"]["status"]
     version = response["cluster"]["version"]
-    logger.info("The Cluster Status = %s and Version = %s", status, version)
+    echo_info(f"The Cluster Status = {status} and Version = {version}")
     return [status, version]
 
 
@@ -29,7 +29,7 @@ def describe_node_groups(cluster_name: str, nodegroup: str, region: str) -> List
     response = client.describe_nodegroup(clusterName=cluster_name, nodegroupName=nodegroup)
     status = response.get("nodegroup")["status"]
     version = response.get("nodegroup")["version"]
-    logger.info("The NodeGroup = %s Status = %s and Version = %s", nodegroup, status, version)
+    echo_info(f"The NodeGroup = {nodegroup} Status = {status} and Version = {version}")
     return [status, version]
 
 
@@ -72,7 +72,7 @@ def update_current_launch_template_ami(lt_id: str, latest_ami: str, region: str)
         VersionDescription="Latest-AMI",
         LaunchTemplateData={"ImageId": latest_ami},
     )
-    logger.info("New launch template created with AMI %s", latest_ami)
+    echo_info(f"New launch template created with AMI {latest_ami}")
 
 
 def update_nodegroup(cluster_name: str, nodegroup: str, version: str, region: str) -> bool:
@@ -103,13 +103,13 @@ def update_nodegroup(cluster_name: str, nodegroup: str, version: str, region: st
                         nodegroupName=nodegroup,
                         version=version,
                     )
-                logger.info("Updating Node Group %s", nodegroup)
+                echo_info(f"Updating Node Group {nodegroup}")
                 time.sleep(20)
             if describe_node_groups(cluster_name, nodegroup, region)[0] == "UPDATING":
                 end = time.time()
                 hours, rem = divmod(end - start, 3600)
                 minutes, seconds = divmod(rem, 60)
-                logger.info("The %s NodeGroup is Still Updating %s:%s:%s", nodegroup, int(hours), int(minutes), seconds)
+                echo_info(f"The {nodegroup} NodeGroup is Still Updating {hours}:{minutes}:{seconds}")
                 time.sleep(20)
             if describe_node_groups(cluster_name, nodegroup, region)[0] == "DEGRADED":
                 raise Exception("NodeGroup has not started due to unavailability ")
@@ -120,17 +120,12 @@ def update_nodegroup(cluster_name: str, nodegroup: str, version: str, region: st
                 end = time.time()
                 hours, rem = divmod(end - start, 3600)
                 minutes, seconds = divmod(rem, 60)
-                logger.info(
-                    "The Time Taken For the NodeGroup Upgrade %s %s:%s:%s", nodegroup, int(hours), int(minutes), seconds
+                echo_info(
+                    f"The Time Taken For the NodeGroup Upgrade {nodegroup} {hours}:{minutes}:{seconds}",
                 )
                 return True
-
         except Exception as e:
-            logger.error(
-                "Exception encountered while attempting to update nodegroup: %s in cluster: %s - %s! Error: %s",
-                nodegroup,
-                cluster_name,
-                region,
-                e,
+            echo_error(
+                f"Exception encountered while attempting to update nodegroup: {nodegroup} in cluster: {cluster_name} - {region}! Error: {e}",
             )
             raise e

@@ -22,7 +22,7 @@ include = [
 ]
 
 [tool.poetry.scripts]
-eksupgrade = "eksupgrade.cli:entry"
+eksupgrade = "eksupgrade.cli:app"
 
 [tool.bandit]
 exclude_dirs = ["tests"]
@@ -69,6 +69,7 @@ python = "^3.8"
 boto3 = "^1.26.84"
 kubernetes = ">=21.0.0 <25.0.0"
 packaging = ">=21.0,<22.0"
+typer = {extras = ["all"], version = "^0.7.0"}
 
 
 [tool.poetry.group.test.dependencies]

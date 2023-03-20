@@ -19,7 +19,7 @@ else:
     EKSClient = object
     STSClient = object
 
-from eksupgrade.utils import get_logger
+from eksupgrade.utils import echo_info, echo_success, get_logger
 
 logger = get_logger(__name__)
 
@@ -48,8 +48,9 @@ class BaseResource(ABC):
         _cached_properties: List[str] = get_cached_properties(cached_property)
 
         for _cached_property in _cached_properties:
-            logger.info("%s: Clearing cached property: %s", self.__class__.__name__, _cached_property)
+            echo_info(f"{self.__class__.__name__}: Clearing cached property: {_cached_property}")
             delattr(self, _cached_property)
+        echo_success("Cached properties cleared!")
 
 
 @dataclass
