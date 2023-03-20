@@ -15,7 +15,6 @@ def test_entry_version_arg() -> None:
 
 def test_entry_no_arg() -> None:
     """Test the entry method with no arguments."""
-    # with pytest.raises(SystemExit):
     result = runner.invoke(app, [])
     assert result.exit_code == 2
     assert "OPTIONS" in result.stdout
