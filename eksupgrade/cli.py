@@ -1,7 +1,6 @@
 """Handle CLI specific logic and module definitions."""
 from __future__ import annotations
 
-import logging
 import sys
 from queue import Queue
 from typing import Optional

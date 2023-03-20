@@ -43,7 +43,9 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
+          discussion_category_name: announcements
           generate_release_notes: true
+          token: ${{ secretes.RELEASE_GITHUB_TOKEN }}
           files: |
             dist/eksupgrade-${{env.MODULE_VERSION}}-py3-none-any.whl
             dist/eksupgrade-${{env.MODULE_VERSION}}.tar.gz

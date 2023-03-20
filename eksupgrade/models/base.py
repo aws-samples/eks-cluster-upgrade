@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 import boto3
 
+from eksupgrade.utils import echo_info, echo_success, get_logger
+
 if TYPE_CHECKING:  # pragma: no cover
     from mypy_boto3_autoscaling.client import AutoScalingClient
     from mypy_boto3_ec2.client import EC2Client
@@ -18,8 +20,6 @@ else:
     EC2Client = object
     EKSClient = object
     STSClient = object
-
-from eksupgrade.utils import echo_info, echo_success, get_logger
 
 logger = get_logger(__name__)
 
