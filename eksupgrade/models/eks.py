@@ -183,12 +183,12 @@ class AutoscalingGroup(AwsRegionResource):
         ]
 
         if unhealthy_instances:
-            echo_warning("Unhealthy Instances:\n")
+            echo_warning("Unhealthy Instances:")
             for unhealthy_instance in unhealthy_instances:
                 echo_warning(f"\t * {unhealthy_instance}")
 
         if healthy_instances:
-            echo_info("Healthy Instances:\n")
+            echo_info("Healthy Instances:")
             for healthy_instance in healthy_instances:
                 echo_info(f"\t * {healthy_instance}")
 
