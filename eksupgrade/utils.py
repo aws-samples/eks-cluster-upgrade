@@ -31,18 +31,18 @@ def get_logger(logger_name):
     return logger
 
 
-def confirm(message: str) -> bool:
-    """Prompt the user with a confirmation dialog with the provided message."""
+def confirm(message: str, abort: bool = True) -> bool:
+    """Prompt the user with a confirmation dialog with the provided message.
+
+    Raises:
+        typer.Abort: The exception is raised when abort=True and confirmation fails.
+
+    Returns:
+        bool: Whether or not the prompt was confirmed.
+
+    """
     text = typer.style(message, fg=typer.colors.BRIGHT_BLUE, bold=True, bg=typer.colors.WHITE)
-    return typer.confirm(text)
-
-
-def interactive_confirm(message: str, interactive: bool = True) -> None:
-    """Prompt the user with a confirmation dialog with the provided message."""
-    if interactive:
-        _confirmation = confirm(message=message)
-        if not _confirmation:
-            raise typer.Abort()
+    return typer.confirm(text, abort=abort)
 
 
 def echo_error(message: str) -> None:

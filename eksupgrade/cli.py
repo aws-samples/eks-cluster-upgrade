@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from eksupgrade import __version__
-from eksupgrade.utils import echo_error, echo_info, echo_success, echo_warning, get_logger, interactive_confirm
+from eksupgrade.utils import confirm, echo_error, echo_info, echo_success, echo_warning, get_logger
 
 from .exceptions import ClusterInactiveException
 from .models.eks import Cluster
@@ -89,10 +89,10 @@ def main(
         )
 
         # Confirm whether or not to proceed following pre-flight checks.
-        interactive_confirm(
-            f"Are you sure you want to proceed with the upgrade process against: {cluster_name}?",
-            interactive,
-        )
+        if interactive:
+            confirm(
+                f"Are you sure you want to proceed with the upgrade process against: {cluster_name}?",
+            )
 
         if not target_cluster.available:
             echo_error("The cluster is not active!")
@@ -181,6 +181,8 @@ def main(
                 echo_success("After update check for cluster completed successfully")
         else:
             echo_warning("Post-flight check was disabled and didn't run.")
+    except typer.Abort:
+        echo_warning("Cluster upgrade aborted!")
     except Exception as error:
         if is_present:
             try:
