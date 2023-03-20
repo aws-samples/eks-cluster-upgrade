@@ -16,6 +16,8 @@ from kubernetes import config as k8s_config
 from packaging.version import Version
 from packaging.version import parse as parse_version
 
+from eksupgrade.utils import echo_error, echo_info, echo_success, echo_warning, get_logger
+
 from ..exceptions import InvalidUpgradeTargetVersion
 from .base import AwsRegionResource
 
@@ -70,9 +72,8 @@ def requires_cluster(function):
 
     def wrapper(self, *args, **kwargs):
         if not self.cluster.name:
-            logger.error(
-                "Unable to use method: %s without the cluster attribute! Pass a cluster to this child object!",
-                function.__name__,
+            echo_error(
+                f"Unable to use method: {function.__name__} without the cluster attribute! Pass a cluster to this child object!",
             )
             return None
         return function(self, *args, **kwargs)
@@ -161,7 +162,7 @@ class AutoscalingGroup(AwsRegionResource):
         asg_data: Optional[AutoScalingGroupTypeDef] = None,
     ):
         """Get the cluster's manage nodegroup details and build a ManagedNodeGroup object."""
-        logger.info("Getting cluster autoscaling group details...")
+        echo_info("Getting cluster autoscaling group details...")
 
         if not asg_data:
             response: AutoScalingGroupsTypeTypeDef = cluster.autoscaling_client.describe_auto_scaling_groups(
@@ -170,10 +171,8 @@ class AutoscalingGroup(AwsRegionResource):
             asg_data = response["AutoScalingGroups"][0]
 
         asg_name: str = autoscaling_group_name or asg_data.get("AutoScalingGroupName", "")
-        logger.info(
-            "Autoscaling Group: %s - Cluster: %s",
-            asg_name,
-            cluster.name,
+        echo_info(
+            f"Autoscaling Group: {asg_name} - Cluster: {cluster.name}",
         )
         instances = asg_data.get("Instances", [])
         unhealthy_instances = [
@@ -184,8 +183,14 @@ class AutoscalingGroup(AwsRegionResource):
         ]
 
         if unhealthy_instances:
-            logger.warning("Unhealthy Instances: %s", unhealthy_instances)
-        logger.debug("Healthy Instances: %s", healthy_instances)
+            echo_warning("Unhealthy Instances:\n")
+            for unhealthy_instance in unhealthy_instances:
+                echo_warning(f"\t * {unhealthy_instance}")
+
+        if healthy_instances:
+            echo_info("Healthy Instances:\n")
+            for healthy_instance in healthy_instances:
+                echo_info(f"\t * {healthy_instance}")
 
         return cls(
             cluster=cluster,
@@ -275,7 +280,7 @@ class ManagedNodeGroup(EksResource):
     @classmethod
     def get(cls, node_group: str, cluster: Cluster, region: str):
         """Get the cluster's manage nodegroup details and build a ManagedNodeGroup object."""
-        logger.info("Getting cluster managed nodegroup details...")
+        echo_info("Getting cluster managed nodegroup details...")
         response: DescribeNodegroupResponseTypeDef = cluster.eks_client.describe_nodegroup(
             nodegroupName=node_group,
             clusterName=cluster.name,
@@ -283,12 +288,8 @@ class ManagedNodeGroup(EksResource):
         nodegroup_data: NodegroupTypeDef = response["nodegroup"]
         version: str = nodegroup_data.get("version", "")
         release_version: str = nodegroup_data.get("releaseVersion", "")
-        logger.info(
-            "Managed Node Group: %s - Version: %s - Release Version: %s - Cluster: %s",
-            node_group,
-            version,
-            release_version,
-            cluster.name,
+        echo_info(
+            f"Managed Node Group: {node_group} - Version: {version} - Release Version: {release_version} - Cluster: {cluster.name}",
         )
         _resources: NodegroupResourcesTypeDef = nodegroup_data.get("resources", {})
 
@@ -324,11 +325,8 @@ class ManagedNodeGroup(EksResource):
     def needs_upgrade(self) -> bool:
         """Determine whether or not the managed nodegroup needs upgraded."""
         if self.status in ["ACTIVE", "UPDATING"] and not self.version == self.cluster.target_version:
-            logger.info(
-                "Managed Node Group: %s requires upgrade from version: %s to target version: %s",
-                self.name,
-                self.version,
-                self.cluster.target_version,
+            echo_info(
+                f"Managed Node Group: {self.name} requires upgrade from version: {self.version} to target version: {self.cluster.target_version}",
             )
             return True
         return False
@@ -354,7 +352,7 @@ class ManagedNodeGroup(EksResource):
             update_kwargs["launchTemplate"] = launch_template
             update_kwargs["version"] = version
         elif launch_template and (self.ami_type == "CUSTOM" and version):
-            logger.error("Version and launch template provided to managed nodegroug update with custom AMI!")
+            echo_error("Version and launch template provided to managed nodegroug update with custom AMI!")
 
         if release_version:
             update_kwargs["releaseVersion"] = release_version
@@ -363,7 +361,7 @@ class ManagedNodeGroup(EksResource):
             update_kwargs["clientRequestToken"] = client_request_id
 
         version = version or self.cluster.target_version
-        logger.info("Updating nodegroup: %s from version: %s to version: %s", self.name, self.version, version)
+        echo_info(f"Updating nodegroup: {self.name} from version: {self.version} to version: {version}")
         update_response = self.eks_client.update_nodegroup_version(
             clusterName=self.cluster.name, nodegroupName=self.name, force=force, **update_kwargs
         )
@@ -371,8 +369,8 @@ class ManagedNodeGroup(EksResource):
         _update_errors = update_response_body.get("errors", [])
 
         if _update_errors:
-            logger.error(
-                "Errors encountered while attempting to update addon: %s - Errors: %s", self.name, _update_errors
+            echo_error(
+                f"Errors encountered while attempting to update addon: {self.name} - Errors: {_update_errors}",
             )
             self.errors += _update_errors
         if wait:
@@ -382,11 +380,11 @@ class ManagedNodeGroup(EksResource):
 
     def wait_for_active(self, delay: int = 35, initial_delay: int = 30, max_attempts: int = 160) -> None:
         """Wait for the nodegroup to become active."""
-        logger.info("Waiting for the Managed Node Group: %s to become active...", self.name)
+        echo_info(f"Waiting for the Managed Node Group: {self.name} to become active...")
         time.sleep(initial_delay)
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, nodegroupName=self.name, WaiterConfig=waiter_config)
-        logger.info("Managed Nodegroup: %s now active!", self.name)
+        echo_success(f"Managed Nodegroup: {self.name} now active!")
 
 
 @dataclass
@@ -475,7 +473,7 @@ class ClusterAddon(EksResource):
             versions = [version or self.target_version]
 
         for version in versions:
-            logger.info("Updating addon: %s from original version: %s to version: %s", self.name, self.version, version)
+            echo_info(f"Updating addon: {self.name} from original version: {self.version} to version: {version}")
             update_response: UpdateAddonResponseTypeDef = self.eks_client.update_addon(
                 clusterName=self.cluster.name,
                 addonName=self.name,
@@ -488,12 +486,12 @@ class ClusterAddon(EksResource):
 
             _update_id: str = update_response_body.get("id", "")
             _update_status: str = update_response_body.get("status", "")
-            logger.info("Updating addon: %s - ID: %s - Status: %s", self.name, _update_id, _update_status)
+            echo_info(f"Updating addon: {self.name} - ID: {_update_id} - Status: {_update_status}")
             responses.append(update_response_body)
 
             if _update_errors:
-                logger.error(
-                    "Errors encountered while attempting to update addon: %s - Errors: %s", self.name, _update_errors
+                echo_error(
+                    f"Errors encountered while attempting to update addon: {self.name} - Errors: {_update_errors}",
                 )
                 self.errors += _update_errors
             elif wait:
@@ -606,10 +604,8 @@ class ClusterAddon(EksResource):
             and not self.within_target_minor
             and parse_version(self.version) < parse_version(self.next_minor)
         ):
-            logger.info(
-                "vpc-cni will target version: %s instead of %s because it's not within +1 or current minor...",
-                self.next_minor,
-                self._target_version,
+            echo_info(
+                f"vpc-cni will target version: {self.next_minor} instead of {self._target_version} because it's not within +1 or current minor...",
             )
             return self.next_minor
         return self._target_version
@@ -621,11 +617,11 @@ class ClusterAddon(EksResource):
 
     def wait_for_active(self, delay: int = 35, initial_delay: int = 30, max_attempts: int = 160) -> None:
         """Wait for the addon to become active."""
-        logger.info("Waiting for the add-on: %s to become active...", self.name)
+        echo_info(f"Waiting for the add-on: {self.name} to become active...")
         time.sleep(initial_delay)
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(clusterName=self.cluster.name, addonName=self.name, WaiterConfig=waiter_config)
-        logger.info("Add-on: %s upgraded!", self.name)
+        echo_success(f"Add-on: {self.name} upgraded!")
 
 
 @dataclass
@@ -711,7 +707,7 @@ class Cluster(EksResource):
     @cached_property
     def current_addons(self) -> List[str]:
         """Return a list of addon names currently installed in the cluster."""
-        logger.info("Getting the list of current cluster addons for cluster: %s...", self.name)
+        echo_info(f"Getting the list of current cluster addons for cluster: {self.name}...")
         return self.eks_client.list_addons(clusterName=self.name).get("addons", [])
 
     @property
@@ -737,7 +733,7 @@ class Cluster(EksResource):
             The list of `ClusterAddon` objects.
 
         """
-        logger.info("Fetching Cluster Addons...")
+        echo_info("Fetching Cluster Addons...")
         return [ClusterAddon.get(addon, self, self.region) for addon in self.current_addons]
 
     @cached_property
@@ -768,28 +764,22 @@ class Cluster(EksResource):
     def update_cluster(self, wait: bool = True) -> Optional[UpdateTypeDef]:
         """Upgrade the cluster itself."""
         if self._version_object > self._target_version_object:
-            logger.warning(
-                "Cluster: %s version: %s already greater than target version: %s! Skipping cluster upgrade!",
-                self.name,
-                self.version,
-                self.target_version,
+            echo_warning(
+                f"Cluster: {self.name} version: {self.version} already greater than target version: {self.target_version}! Skipping cluster upgrade!",
             )
             return None
 
         if self._version_object == self._target_version_object:
-            logger.warning("Cluster: %s already on version: %s! Skipping cluster upgrade!", self.name, self.version)
+            echo_warning(f"Cluster: {self.name} already on version: {self.version}! Skipping cluster upgrade!")
             return None
 
         if self._target_version_object.minor > self._version_object.minor + 1:
-            logger.error(
-                "Cluster: %s can't be upgraded more than one minor at a time! Please adjust the target cluster version and try again!",
-                self.name,
+            echo_error(
+                f"Cluster: {self.name} can't be upgraded more than one minor at a time! Please adjust the target cluster version and try again!",
             )
             raise InvalidUpgradeTargetVersion()
 
-        logger.info(
-            "Upgrading cluster: %s from version: %s to version: %s", self.name, self.version, self.target_version
-        )
+        echo_info(f"Upgrading cluster: {self.name} from version: {self.version} to version: {self.target_version}")
         update_response: UpdateClusterVersionResponseTypeDef = self.eks_client.update_cluster_version(
             name=self.name, version=self.target_version
         )
@@ -797,8 +787,8 @@ class Cluster(EksResource):
         _update_errors = update_response_body.get("errors", [])
 
         if _update_errors:
-            logger.error(
-                "Errors encountered while attempting to update cluster: %s - Errors: %s", self.name, _update_errors
+            echo_error(
+                f"Errors encountered while attempting to update cluster: {self.name} - Errors: {_update_errors}",
             )
             self.errors += _update_errors
         if wait:
@@ -807,7 +797,7 @@ class Cluster(EksResource):
 
     def upgrade_addons(self, wait: bool = False) -> Dict[str, Any]:
         """Upgrade all cluster addons."""
-        logger.info("The add-ons update has been initiated...")
+        echo_info("The add-ons update has been initiated...")
         upgrade_details: Dict[str, Any] = {}
         for addon in self.upgradable_addons:
             _update_responses: list[UpdateTypeDef] = addon.update(wait=wait)
@@ -821,7 +811,7 @@ class Cluster(EksResource):
             _update_response: UpdateTypeDef = nodegroup.update(wait=wait)
             _update_id: str = _update_response.get("id", "")
             _update_status: str = _update_response.get("status", "")
-            logger.info("Updating nodegroup: %s - ID: %s - Status: %s", nodegroup.name, _update_id, _update_status)
+            echo_info(f"Updating nodegroup: {nodegroup.name} - ID: {_update_id} - Status: {_update_status}")
             upgrade_details[nodegroup.name] = _update_response
         return upgrade_details
 
@@ -1004,8 +994,8 @@ class Cluster(EksResource):
 
     def wait_for_active(self, delay: int = 35, initial_delay: int = 30, max_attempts: int = 160) -> None:
         """Wait for the cluster to become active."""
-        logger.info("Waiting for cluster: %s to become active...", self.name)
+        echo_info(f"Waiting for cluster: {self.name} to become active...")
         time.sleep(initial_delay)
         waiter_config: WaiterConfigTypeDef = {"Delay": delay, "MaxAttempts": max_attempts}
         self.active_waiter.wait(name=self.name, WaiterConfig=waiter_config)
-        logger.info("Cluster: %s now active, control plane upgrade should be completed!", self.name)
+        echo_success(f"Cluster: {self.name} now active, control plane upgrade should be completed!")

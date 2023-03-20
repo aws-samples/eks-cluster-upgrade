@@ -5,7 +5,7 @@ from typing import Optional
 
 import boto3
 
-from eksupgrade.utils import get_logger
+from eksupgrade.utils import echo_error, echo_warning, get_logger
 
 from .k8s_client import find_node
 
@@ -42,7 +42,7 @@ def image_type(node_type: str, image_id: str, region: str) -> Optional[str]:
             {"Name": "is-public", "Values": ["true"]},
         ]
     else:
-        logger.info("Node type: %s is unsupported  - Image ID: %s", node_type, image_id)
+        echo_warning(f"Node type: {node_type} is unsupported  - Image ID: {image_id}")
         return None
 
     # describing image types
@@ -64,7 +64,7 @@ def get_ami_name(cluster_name: str, asg_name: str, region: str):
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     instance_ids = [instance["InstanceId"] for instance in response["AutoScalingGroups"][0]["Instances"]]
     if not instance_ids:
-        logger.error("No instances found to determine AMI - cluster: %s - ASG: %s", cluster_name, asg_name)
+        echo_error(f"No instances found to determine AMI - cluster: {cluster_name} - ASG: {asg_name}")
         raise Exception("No Instances")
 
     response = ec2_client.describe_instances(InstanceIds=instance_ids)

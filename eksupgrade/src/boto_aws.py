@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 import boto3
 
-from eksupgrade.utils import get_logger
+from eksupgrade.utils import echo_error, echo_info, echo_success, echo_warning, get_logger
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,7 @@ def status_of_cluster(cluster_name: str, region: str) -> List[str]:
         response = eks_client.describe_cluster(name=cluster_name)
         return [response["cluster"]["status"], response["cluster"]["version"]]
     except Exception as e:
-        logger.error("Exception encountered while attempting to get cluster status - Error: %s", e)
+        echo_error(f"Exception encountered while attempting to get cluster status - Error: {e}")
         raise e
 
 
@@ -30,7 +30,7 @@ def is_cluster_exists(cluster_name: str, region: str) -> str:
         response = status_of_cluster(cluster_name, region)
         return response[0]
     except Exception as e:
-        logger.error("Exception encountered while checking if cluster exists. Error: %s", e)
+        echo_error(f"Exception encountered while checking if cluster exists. Error: {e}")
         raise e
 
 
@@ -67,14 +67,14 @@ def get_latest_instance(asg_name: str, add_time: datetime.datetime, region: str)
         latest_instance = sorted(instances_valid, key=lambda instance: instance["LaunchTime"])[-1]
         return latest_instance["InstanceId"]
     except Exception as e:
-        logger.error("Exception encountered while sorting instances. Error: %s", e)
+        echo_error(f"Exception encountered while sorting instances. Error: {e}")
         raise e
 
 
 def wait_for_ready(instanceid: str, region: str) -> bool:
     """Wait for the cluster to pass the status checks."""
     ec2_client = boto3.client("ec2", region_name=region)
-    logger.info("Instance %s waiting for the instance to pass the Health Checks", instanceid)
+    echo_info(f"Instance {instanceid} waiting for the instance to pass the Health Checks")
     try:
         while (
             ec2_client.describe_instance_status(InstanceIds=[instanceid])["InstanceStatuses"][0]["InstanceStatus"][
@@ -82,10 +82,10 @@ def wait_for_ready(instanceid: str, region: str) -> bool:
             ][0]["Status"]
             != "passed"
         ):
-            logger.info("Instance: %s waiting for the instance to pass the Health Checks", instanceid)
+            echo_info(f"Instance: {instanceid} waiting for the instance to pass the Health Checks")
             time.sleep(20)
     except Exception as e:
-        logger.error(e)
+        echo_error(str(e))
         raise Exception(f"{e}: Please rerun the Script the instance will be created")
     return True
 
@@ -130,13 +130,10 @@ def enable_disable_autoscaler(asg_name: str, action: str, region: str) -> str:
                 ]
             )
             return "done"
-        logger.warning("Invalid action provided to enable_disable_autoscaler!")
+        echo_warning("Invalid action provided to enable_disable_autoscaler!")
     except Exception as e:
-        logger.error(
-            "Exception encountered while attempting to %s the autoscaler associated with ASG: %s - Error: %s",
-            action,
-            asg_name,
-            e,
+        echo_error(
+            f"Exception encountered while attempting to {action} the autoscaler associated with ASG: {asg_name} - Error: {e}",
         )
         raise Exception(e)
     finally:
@@ -150,7 +147,7 @@ def worker_terminate(instance_id: str, region: str) -> None:
     try:
         asg_client.terminate_instance_in_auto_scaling_group(InstanceId=instance_id, ShouldDecrementDesiredCapacity=True)
     except Exception as e:
-        logger.error("Exception encountered while attempting to terminate worker: %s - Error: %s", instance_id, e)
+        echo_error(f"Exception encountered while attempting to terminate worker: {instance_id} - Error: {e}")
         raise e
 
 
@@ -163,7 +160,7 @@ def add_node(asg_name: str, region: str) -> None:
         old_capacity_mx = response["AutoScalingGroups"][0]["MaxSize"]
         old_capacity_des = response["AutoScalingGroups"][0]["DesiredCapacity"]
     except (KeyError, IndexError):
-        logger.error("Exception encountered while getting old ASG capacity during add_node - ASG: %s", asg_name)
+        echo_error(f"Exception encountered while getting old ASG capacity during add_node - ASG: {asg_name}")
         raise Exception("Error Index out of bound due to no max capacity field")
 
     if int(old_capacity_des) >= int(old_capacity_mx):
@@ -176,9 +173,9 @@ def add_node(asg_name: str, region: str) -> None:
 
     try:
         asg_client.set_desired_capacity(AutoScalingGroupName=asg_name, DesiredCapacity=new_capacity)
-        logger.info("New Node has been Added to %s", asg_name)
+        echo_info(f"New Node has been Added to {asg_name}")
     except Exception as e:
-        logger.error("Exception encountered while attempting to add node to ASG: %s - Error: %s", asg_name, e)
+        echo_error(f"Exception encountered while attempting to add node to ASG: {asg_name} - Error: {e}")
         raise e
 
 
@@ -233,7 +230,7 @@ def get_old_lt(asg_name: str, region: str) -> List[str]:
             "LaunchTemplateSpecification"
         ]["LaunchTemplateName"]
     else:
-        logger.error("Old Launch Template not found! ASG: %s - Region: %s", asg_name, region)
+        echo_error(f"Old Launch Template not found! ASG: {asg_name} - Region: {region}")
         return []
 
     # checking whether there are instances with 1!=2 mismatch template version
@@ -315,14 +312,10 @@ def add_autoscaling(asg_name: str, img_id: str, region: str) -> Dict[str, Any]:
         response = asg_client.update_auto_scaling_group(
             AutoScalingGroupName=asg_name, LaunchConfigurationName=new_launch_config_name
         )
-        logger.info("Updated to latest launch configuration")
+        echo_success("Updated to latest launch configuration")
     except Exception as e:
-        logger.error(
-            "Exception encountered while executing add_autoscaling with ASG: %s - Image ID: %s - Region: %s - Error: %s",
-            asg_name,
-            img_id,
-            region,
-            e,
+        echo_error(
+            f"Exception encountered while executing add_autoscaling with ASG: {asg_name} - Image ID: {img_id} - Region: {region} - Error: {e}",
         )
         raise e
     return response
