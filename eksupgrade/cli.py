@@ -53,12 +53,6 @@ def main(
     ),
 ) -> None:
     """Run eksupgrade against a target cluster."""
-    logging.basicConfig(
-        level=log_level.upper(),
-        format="[%(levelname)s] : %(asctime)s : %(name)s : %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
     queue = Queue()
     is_present: bool = False
     replicas_value: int = 0
