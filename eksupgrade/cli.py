@@ -52,24 +52,7 @@ def main(
         None, "--version", callback=version_callback, is_eager=True, help="Display the current eksupgrade version"
     ),
 ) -> None:
-    """Run eksupgrade against a target cluster.
-
-    example:
-        eksupgrade <cluster_name> <cluster_version> <region>
-
-    Force pod eviction when you have PDB (Pod Disruption Budget):
-        eksupgrade <name> <version> <region> --force
-
-    Skip upgrade workflow:
-        eksupgrade <name> <version> <region> --preflight
-
-    Set log level to console (default to INFO):
-        eksupgrade <name> <version> <region> --log-level debug
-
-    Display the eksupgrade version:
-        eksupgrade --version
-
-    """
+    """Run eksupgrade against a target cluster."""
     logging.basicConfig(
         level=log_level.upper(),
         format="[%(levelname)s] : %(asctime)s : %(name)s : %(message)s",
