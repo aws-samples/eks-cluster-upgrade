@@ -36,14 +36,13 @@ def main(
     cluster_name: str = typer.Argument(..., help="The name of the cluster to be upgraded"),
     cluster_version: str = typer.Argument(..., help="The target Kubernetes version to upgrade the cluster to"),
     region: str = typer.Argument(..., help="The AWS region where the target cluster resides"),
-    max_retry: int = typer.Argument(default=2, help="The most number of times to retry an upgrade"),
+    max_retry: int = typer.Option(default=2, help="The most number of times to retry an upgrade"),
     force: bool = typer.Option(default=False, help="Force the upgrade (e.g. pod eviction with PDB)"),
     preflight: bool = typer.Option(default=False, help="Run pre-flight check without upgrade"),
     parallel: bool = typer.Option(default=False, help="Upgrade all nodegroups in parallel"),
     latest_addons: bool = typer.Option(
         default=False, help="Upgrade addons to the latest eligible version instead of default"
     ),
-    log_level: str = typer.Argument(default="INFO", help="The log level to be displayed in the console"),
     disable_checks: bool = typer.Option(
         default=False, help="Disable the pre-flight and post-flight checks during upgrade scenarios"
     ),

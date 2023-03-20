@@ -115,30 +115,28 @@ eksupgrade --help
 ```
 
 ```sh
- Usage: eksupgrade [OPTIONS] CLUSTER_NAME CLUSTER_VERSION REGION [MAX_RETRY]
-                   [LOG_LEVEL]
+ Usage: eksupgrade [OPTIONS] CLUSTER_NAME CLUSTER_VERSION REGION
 
  Run eksupgrade against a target cluster.
 
 ╭─ Arguments ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    cluster_name         TEXT         The name of the cluster to be upgraded [default: None] [required]                                                                                                            │
-│ *    cluster_version      TEXT         The target Kubernetes version to upgrade the cluster to [default: None] [required]                                                                                           │
-│ *    region               TEXT         The AWS region where the target cluster resides [default: None] [required]                                                                                                   │
-│      max_retry            [MAX_RETRY]  The most number of times to retry an upgrade [default: 2]                                                                                                                    │
-│      log_level            [LOG_LEVEL]  The log level to be displayed in the console [default: INFO]                                                                                                                 │
+│ *    cluster_name         TEXT  The name of the cluster to be upgraded [default: None] [required]                                                                                                                   │
+│ *    cluster_version      TEXT  The target Kubernetes version to upgrade the cluster to [default: None] [required]                                                                                                  │
+│ *    region               TEXT  The AWS region where the target cluster resides [default: None] [required]                                                                                                          │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --force                 --no-force               Force the upgrade (e.g. pod eviction with PDB) [default: no-force]                                                                                                 │
-│ --preflight             --no-preflight           Run pre-flight check without upgrade [default: no-preflight]                                                                                                       │
-│ --parallel              --no-parallel            Upgrade all nodegroups in parallel [default: no-parallel]                                                                                                          │
-│ --latest-addons         --no-latest-addons       Upgrade addons to the latest eligible version instead of default [default: no-latest-addons]                                                                       │
-│ --disable-checks        --no-disable-checks      Disable the pre-flight and post-flight checks during upgrade scenarios [default: no-disable-checks]                                                                │
-│ --interactive           --no-interactive         If enabled, prompt the user for confirmations [default: interactive]                                                                                               │
-│ --version                                        Display the current eksupgrade version                                                                                                                             │
-│ --install-completion                             Install completion for the current shell.                                                                                                                          │
-│ --show-completion                                Show completion for the current shell, to copy it or customize the installation.                                                                                   │
-│ --help                                           Show this message and exit.                                                                                                                                        │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+│ --max-retry                                    INTEGER  The most number of times to retry an upgrade [default: 2]                                                                                                   │
+│ --force                 --no-force                      Force the upgrade (e.g. pod eviction with PDB) [default: no-force]                                                                                          │
+│ --preflight             --no-preflight                  Run pre-flight check without upgrade [default: no-preflight]                                                                                                │
+│ --parallel              --no-parallel                   Upgrade all nodegroups in parallel [default: no-parallel]                                                                                                   │
+│ --latest-addons         --no-latest-addons              Upgrade addons to the latest eligible version instead of default [default: no-latest-addons]                                                                │
+│ --disable-checks        --no-disable-checks             Disable the pre-flight and post-flight checks during upgrade scenarios [default: no-disable-checks]                                                         │
+│ --interactive           --no-interactive                If enabled, prompt the user for confirmations [default: interactive]                                                                                        │
+│ --version                                               Display the current eksupgrade version                                                                                                                      │
+│ --install-completion                                    Install completion for the current shell.                                                                                                                   │
+│ --show-completion                                       Show completion for the current shell, to copy it or customize the installation.                                                                            │
+│ --help                                                  Show this message and exit.                                                                                                                                 │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ## Security
