@@ -14,6 +14,9 @@ env:
 jobs:
   validate-install:
     name: Validating code install
+    strategy:    
+      matrix:
+        version: ['3.8', '3.9', '3.10', '3.11']    
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
@@ -23,8 +26,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '${{ inputs.python-version }}'
-
+          python-version: '${{ matrix.version }}'
       - name: Setup Dependencies
         uses: './.github/actions/dep-setup'
         with:
