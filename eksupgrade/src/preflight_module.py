@@ -832,7 +832,7 @@ def security_group_check(errors, cluster_name, region, cluster, report, customer
 def iscustomami(node_type, Presentversion, image_id, region):
     filters = [{"Name": "is-public", "Values": ["true"]}]
 
-    if node_type in ["Amazon Linux 2"]:
+    if node_type == "Amazon Linux 2":
         filters.append({"Name": "name", "Values": [f"amazon-eks-node-{Presentversion}*"]})
     elif "ubuntu" in node_type.lower():
         filters.append({"Name": "name", "Values": [f"ubuntu-eks/k8s_{Presentversion}*"]})
