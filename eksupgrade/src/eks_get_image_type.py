@@ -16,31 +16,18 @@ def image_type(node_type: str, image_id: str, region: str) -> Optional[str]:
     """Return the image location."""
     ec2_client = boto3.client("ec2", region_name=region)
     node_type = node_type.lower()
+    filters = [
+        {"Name": "is-public", "Values": ["true"]},
+    ]
 
     if node_type == "amazon linux 2":
-        filters = [
-            {"Name": "owner-id", "Values": ["602401143452"]},
-            {"Name": "name", "Values": ["amazon-eks-node-*"]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": ["amazon-eks-node-*"]})
     elif node_type == "ubuntu":
-        filters = [
-            {"Name": "owner-id", "Values": ["099720109477"]},
-            {"Name": "name", "Values": ["ubuntu-eks/k8s_*"]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters = {"Name": "name", "Values": ["ubuntu-eks/k8s_*"]}
     elif node_type == "bottlerocket":
-        filters = [
-            {"Name": "owner-id", "Values": ["092701018921"]},
-            {"Name": "name", "Values": ["bottlerocket-aws-k8s-*"]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": ["bottlerocket-aws-k8s-*"]})
     elif node_type == "windows":
-        filters = [
-            {"Name": "owner-id", "Values": ["801119661308"]},
-            {"Name": "name", "Values": ["Windows_Server-*-English-*-EKS_Optimized-*"]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": ["Windows_Server-*-English-*-EKS_Optimized-*"]})
     else:
         echo_warning(f"Node type: {node_type} is unsupported  - Image ID: {image_id}")
         return None
