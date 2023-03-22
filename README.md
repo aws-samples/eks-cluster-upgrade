@@ -138,6 +138,9 @@ eksupgrade --help
 │ --help                                                  Show this message and exit.                                                                                                                                 │
 ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
+## Support & Feedback
+
+This project is maintained by AWS Solution Architects and Consultants. It is not part of an AWS service and support is provided best-effort by the maintainers. To post feedback, submit feature ideas, or report bugs, please use the [Issues section](https://github.com/aws-samples/eks-cluster-upgrade/issues) of this repo. If you are interested in contributing, please see the [Contribution guide](https://github.com/aws-samples/eks-cluster-upgrade/blob/main/CONTRIBUTING.md).
 
 ## Security
 
