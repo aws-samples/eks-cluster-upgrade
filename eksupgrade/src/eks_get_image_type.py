@@ -23,7 +23,7 @@ def image_type(node_type: str, image_id: str, region: str) -> Optional[str]:
     if node_type == "amazon linux 2":
         filters.append({"Name": "name", "Values": ["amazon-eks-node-*"]})
     elif node_type == "ubuntu":
-        filters = {"Name": "name", "Values": ["ubuntu-eks/k8s_*"]}
+        filters.append({"Name": "name", "Values": ["ubuntu-eks/k8s_*"]})
     elif node_type == "bottlerocket":
         filters.append({"Name": "name", "Values": ["bottlerocket-aws-k8s-*"]})
     elif node_type == "windows":
