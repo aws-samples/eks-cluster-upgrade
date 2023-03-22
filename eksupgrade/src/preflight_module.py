@@ -830,33 +830,16 @@ def security_group_check(errors, cluster_name, region, cluster, report, customer
 
 # Check if the AMI is custom
 def iscustomami(node_type, Presentversion, image_id, region):
+    filters = [{"Name": "is-public", "Values": ["true"]}]
+
     if node_type == "Amazon Linux 2":
-        filters = [
-            {"Name": "owner-id", "Values": ["602401143452"]},
-            {"Name": "name", "Values": ["amazon-eks-node-{version}*".format(version=Presentversion)]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": [f"amazon-eks-node-{Presentversion}*"]})
     elif "ubuntu" in node_type.lower():
-        filters = [
-            {"Name": "owner-id", "Values": ["099720109477"]},
-            {"Name": "name", "Values": ["ubuntu-eks/k8s_{version}*".format(version=Presentversion)]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": [f"ubuntu-eks/k8s_{Presentversion}*"]})
     elif "bottlerocket" in node_type.lower():
-        filters = [
-            {"Name": "owner-id", "Values": ["092701018921"]},
-            {"Name": "name", "Values": ["bottlerocket-aws-k8s-{version}*".format(version=Presentversion)]},
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": [f"bottlerocket-aws-k8s-{Presentversion}*"]})
     elif "windows" in node_type.lower():
-        filters = [
-            {"Name": "owner-id", "Values": ["801119661308"]},
-            {
-                "Name": "name",
-                "Values": ["Windows_Server-*-English-*-EKS_Optimized-{version}*".format(version=Presentversion)],
-            },
-            {"Name": "is-public", "Values": ["true"]},
-        ]
+        filters.append({"Name": "name", "Values": [f"Windows_Server-*-English-*-EKS_Optimized-{Presentversion}*"]})
     else:
         return True
 
