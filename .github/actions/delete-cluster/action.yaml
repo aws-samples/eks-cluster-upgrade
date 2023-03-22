@@ -36,5 +36,5 @@ runs:
       id: destroy_cluster
       run: |
         cluster_version='${{ inputs.eks_version }}'
-        echo "Destroying the temporary cluster eksup-cluster-${cluster_version/./-}"
-        eksctl delete cluster -f .github/scripts/cluster_creation_${{inputs.eks_version}}.yaml
+        echo "Destroying the temporary cluster eksup-cluster-${cluster_version/./-}-'${{inputs.region}}'"
+        eksctl delete cluster -f .github/scripts/cluster_creation_${{inputs.eks_version}}-${{inputs.region}}.yaml

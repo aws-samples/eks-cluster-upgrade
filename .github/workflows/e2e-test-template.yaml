@@ -55,8 +55,8 @@ jobs:
       - name: create eks cluster
         id: create_cluster
         run: |
-          echo "Creating the cluster eksup-cluster-'${{inputs.cluster_suffix}}'"
-          eksctl create cluster -f .github/scripts/cluster_creation_${{inputs.current_version}}.yaml
+          echo "Creating the cluster eksup-cluster-'${{inputs.cluster_suffix}}'-'${{inputs.target_region}}'"
+          eksctl create cluster -f .github/scripts/cluster_creation_${{inputs.current_version}}-${{inputs.target_region}}.yaml
 
 
   cluster-upgrade-check:
@@ -94,17 +94,17 @@ jobs:
         id: no_upgrade
         run: |
           echo "Test the cluster eksup-cluster-${{inputs.cluster_suffix}} with upgrade set to current version"
-          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} ${{inputs.target_region}} --no-interactive
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} ${{inputs.current_version}} ${{inputs.target_region}} --no-interactive
       - name: Test pre-flight checks
         id: preflight_checks
         run: |
           echo "Running pre-flight checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} against version ${{inputs.target_version}} "
-          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} ${{inputs.target_region}} --preflight --no-interactive
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} ${{inputs.target_version}} ${{inputs.target_region}} --preflight --no-interactive
       - name: Test standalone addon upgrade
         id: addon_upgrade
         run: |
           echo "Running upgrade addon checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} with same control plane version "
-          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.current_version}} ${{inputs.target_region}} --latest-addons --no-interactive
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} ${{inputs.current_version}} ${{inputs.target_region}} --latest-addons --no-interactive
       - name: Configure AWS Credentials-2 # added to handle the windows nodegroup updates which take more time
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -115,8 +115,8 @@ jobs:
       - name: Test cluster upgrade
         id: cluster_upgrade
         run: |
-          echo "Upgrading the cluster eksup-cluster-${{inputs.cluster_suffix}} to version ${{inputs.target_version}} "
-          eksupgrade eksup-cluster-${{inputs.cluster_suffix}} ${{inputs.target_version}} ${{inputs.target_region}} --no-interactive
+          echo "Upgrading the cluster eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} to version ${{inputs.target_version}} "
+          eksupgrade eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} ${{inputs.target_version}} ${{inputs.target_region}} --no-interactive
       - name: Destroy the cluster
         if: ${{inputs.trigger_destroy == 'true'}}
         uses: './.github/actions/delete-cluster'

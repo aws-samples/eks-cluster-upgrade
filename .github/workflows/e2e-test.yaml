@@ -32,9 +32,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - current_version: 1.21
-            cluster_suffix: 1-21
-            target_version: 1.22
+          - current_version: 1.22
+            cluster_suffix: 1-22
+            target_version: 1.23
             target_region: "us-east-2"
           - current_version: 1.22
             cluster_suffix: 1-22
@@ -73,7 +73,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - eks_version: 1.21
+          - eks_version: 1.22
             target_region: "us-east-2"
           - eks_version: 1.22
             target_region: "us-east-1"
