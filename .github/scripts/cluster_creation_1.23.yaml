@@ -4,7 +4,7 @@ kind: ClusterConfig
 
 metadata:
   name: eksup-cluster-1-23
-  region: us-east-1
+  region: us-east-2
   version: "1.23"
 managedNodeGroups:
   - name: eksup-managed-ng
@@ -20,4 +20,4 @@ addons:
 - name: vpc-cni
 - name: coredns
 - name: kube-proxy
-availabilityZones: ['us-east-1a','us-east-1b']
+availabilityZones: ['us-east-2a','us-east-2b']
