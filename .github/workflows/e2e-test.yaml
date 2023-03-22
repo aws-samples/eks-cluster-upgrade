@@ -35,12 +35,19 @@ jobs:
           - current_version: 1.22
             cluster_suffix: 1-22
             target_version: 1.23
+            target_region: "us-east-2"
+          - current_version: 1.22
+            cluster_suffix: 1-22
+            target_version: 1.23
+            target_region: "us-east-1"
           - current_version: 1.23
             cluster_suffix: 1-23
             target_version: 1.24
+            target_region: "us-east-2"
           - current_version: 1.24
             cluster_suffix: 1-24
             target_version: 1.25
+            target_region: "us-east-1"
     uses: ./.github/workflows/e2e-test-template.yaml
     with:
       eksupgrade_version: ${{github.event.inputs.eksupgrade_version}}
@@ -49,6 +56,7 @@ jobs:
       current_version: ${{matrix.current_version}}
       cluster_suffix: ${{matrix.cluster_suffix}}
       target_version: ${{matrix.target_version}}
+      target_region: ${{matrix.target_region}}
 
     secrets:
       git_role: ${{ secrets.ROLE_TO_ASSUME }}
@@ -66,8 +74,13 @@ jobs:
       matrix:
         include:
           - eks_version: 1.22
+            target_region: "us-east-2"
+          - eks_version: 1.22
+            target_region: "us-east-1"
           - eks_version: 1.23
+            target_region: "us-east-2"
           - eks_version: 1.24
+            target_region: "us-east-1"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -76,4 +89,4 @@ jobs:
         with:
           eks_version: ${{matrix.eks_version}}
           iam_role: ${{ secrets.ROLE_TO_ASSUME }}
-          region: 'us-east-1'
+          region: ${{matrix.target_region}}

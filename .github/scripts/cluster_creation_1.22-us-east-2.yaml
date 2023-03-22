@@ -1,0 +1,23 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eksup-cluster-1-22-us-east-2
+  region: us-east-2
+  version: "1.22"
+
+managedNodeGroups:
+  - name: linux-ng
+    instanceType: t2.large
+    minSize: 2
+    maxSize: 2
+  - name: windows-managed-ng
+    amiFamily: WindowsServer2019FullContainer
+    minSize: 2
+    maxSize: 2
+addons:
+- name: vpc-cni
+- name: coredns
+- name: kube-proxy
+availabilityZones: ['us-east-2a','us-east-2b']

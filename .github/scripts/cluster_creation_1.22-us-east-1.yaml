@@ -3,9 +3,9 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: eksup-cluster-1-24
+  name: eksup-cluster-1-22-us-east-1
   region: us-east-1
-  version: "1.24"
+  version: "1.22"
 managedNodeGroups:
   - name: eksup-managed-ng
     instanceType: t2.large
