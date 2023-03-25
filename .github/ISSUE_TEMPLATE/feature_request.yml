@@ -28,7 +28,7 @@ body:
     attributes:
       label: Alternative solutions
       description: Please describe what alternative solutions to this use case, if any
-      render: markdown
+      render: Markdown
     validations:
       required: false
   - type: markdown
