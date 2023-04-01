@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eksupgrade"
-version = "0.8.1"
+version = "0.8.2"
 description = "The Amazon EKS cluster upgrade utility"
 authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
 readme = "README.md"
