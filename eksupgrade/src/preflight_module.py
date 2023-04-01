@@ -834,8 +834,6 @@ def iscustomami(node_type, Presentversion, image_id, region):
 
     if node_type == "Amazon Linux 2":
         filters.append({"Name": "name", "Values": [f"amazon-eks-node-{Presentversion}*"]})
-    elif "ubuntu" in node_type.lower():
-        filters.append({"Name": "name", "Values": [f"ubuntu-eks/k8s_{Presentversion}*"]})
     elif "bottlerocket" in node_type.lower():
         filters.append({"Name": "name", "Values": [f"bottlerocket-aws-k8s-{Presentversion}*"]})
     elif "windows" in node_type.lower():
