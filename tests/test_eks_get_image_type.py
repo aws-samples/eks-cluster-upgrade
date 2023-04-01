@@ -15,6 +15,6 @@ from eksupgrade.src.eks_get_image_type import image_type
     ],
 )
 def test_image_type(ec2_client, region, node_type, image_id) -> None:
-    """Test the loading_config method."""
+    """Test the image_type method."""
     ami_id: Optional[str] = image_type(node_type=node_type, image_id=image_id, region=region)
     assert ami_id
