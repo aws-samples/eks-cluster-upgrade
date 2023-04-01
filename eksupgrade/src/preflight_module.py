@@ -30,7 +30,7 @@ def pre_flight_checks(
 ) -> bool:
     """Handle the pre-flight checks."""
     echo_deprecation(
-        f"Ths {'pre' if preflight else 'post'}-flight checks will be deprecated in the next minor release in favor of cluster summaries: #103"
+        f"The {'pre' if preflight else 'post'}-flight checks will be deprecated in the next minor release in favor of cluster summaries: #103"
     )
     echo_info(f"Running validation checks against cluster: {cluster_name}...")
     loading_config(cluster_name, region)
