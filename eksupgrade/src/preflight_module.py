@@ -8,7 +8,7 @@ import urllib3
 import yaml
 from kubernetes import client
 
-from eksupgrade.utils import echo_error, echo_info, echo_success, echo_warning, get_package_dict
+from eksupgrade.utils import echo_deprecation, echo_error, echo_info, echo_success, echo_warning, get_package_dict
 
 from .k8s_client import get_default_version, loading_config
 
@@ -29,6 +29,9 @@ def pre_flight_checks(
     force_upgrade: bool = False,
 ) -> bool:
     """Handle the pre-flight checks."""
+    echo_deprecation(
+        f"Ths {'pre' if preflight else 'post'}-flight checks will be deprecated in the next minor release in favor of cluster summaries: #103"
+    )
     echo_info(f"Running validation checks against cluster: {cluster_name}...")
     loading_config(cluster_name, region)
     report: Dict[str, Any] = {"preflight_status": True}

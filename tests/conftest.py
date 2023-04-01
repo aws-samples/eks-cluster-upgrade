@@ -4,6 +4,7 @@ from typing import Any, Generator
 
 import boto3
 import pytest
+import typer
 from moto import mock_ec2, mock_eks, mock_sts
 
 
@@ -62,3 +63,9 @@ def eks_cluster(eks_client, cluster_name):
         resourcesVpcConfig={},
     )
     yield
+
+
+@pytest.fixture
+def app():
+    """Define the typer cli fixture."""
+    return typer.Typer()
