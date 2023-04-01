@@ -20,13 +20,14 @@ def image_type(node_type: str, image_id: str, region: str) -> Optional[str]:
         {"Name": "is-public", "Values": ["true"]},
     ]
 
-    if node_type == "amazon linux 2":
+    # TODO: Confirm if we should strip the 2 from this check for 2/2023.
+    if "amazon linux 2" in node_type:
         filters.append({"Name": "name", "Values": ["amazon-eks-node-*"]})
-    elif node_type == "ubuntu":
+    elif "ubuntu" in node_type:
         filters.append({"Name": "name", "Values": ["ubuntu-eks/k8s_*"]})
-    elif node_type == "bottlerocket":
+    elif "bottlerocket" in node_type:
         filters.append({"Name": "name", "Values": ["bottlerocket-aws-k8s-*"]})
-    elif node_type == "windows":
+    elif "windows" in node_type:
         filters.append({"Name": "name", "Values": ["Windows_Server-*-English-*-EKS_Optimized-*"]})
     else:
         echo_warning(f"Node type: {node_type} is unsupported  - Image ID: {image_id}")
