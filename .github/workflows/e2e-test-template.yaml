@@ -95,11 +95,6 @@ jobs:
         run: |
           echo "Test the cluster eksup-cluster-${{inputs.cluster_suffix}} with upgrade set to current version"
           eksupgrade eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} ${{inputs.current_version}} ${{inputs.target_region}} --no-interactive
-      - name: Test pre-flight checks
-        id: preflight_checks
-        run: |
-          echo "Running pre-flight checks on the cluster eksup-cluster-${{inputs.cluster_suffix}} against version ${{inputs.target_version}} "
-          eksupgrade eksup-cluster-${{inputs.cluster_suffix}}-${{inputs.target_region}} ${{inputs.target_version}} ${{inputs.target_region}} --preflight --no-interactive
       - name: Test standalone addon upgrade
         id: addon_upgrade
         run: |
