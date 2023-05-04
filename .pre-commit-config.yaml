@@ -20,7 +20,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/PyCQA/bandit
-    rev: 1ed79063e3672a1c6d91ee27cb648e07a7465344  # frozen: 1.7.4
+    rev: ca4faf2f82a7c68a088100f8ba2b8e56f9bdcfe3  # frozen: 1.7.5
     hooks:
       - id: bandit
         description: 'Bandit is a tool for finding common security issues in Python code'
@@ -28,7 +28,7 @@ repos:
         args: ["-c", "pyproject.toml"]
 
   - repo: https://github.com/psf/black
-    rev: b0d1fba7ac3be53c71fb0d3211d911e629f8aecb  # frozen: 23.1.0
+    rev: bf7a16254ec96b084a6caf3d435ec18f0f245cc7  # frozen: 23.3.0
     hooks:
       - id: black
         language_version: python3.10

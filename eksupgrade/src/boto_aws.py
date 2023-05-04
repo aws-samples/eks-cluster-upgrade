@@ -220,12 +220,12 @@ def get_old_lt(asg_name: str, region: str) -> List[str]:
     asg_lt_name = ""
     # finding the launch type
     if "LaunchTemplate" in response["AutoScalingGroups"][0]:
-        lt_id = response["AutoScalingGroups"][0]["LaunchTemplate"]["LaunchTemplateId"]
+        response["AutoScalingGroups"][0]["LaunchTemplate"]["LaunchTemplateId"]
         asg_lt_name = response["AutoScalingGroups"][0]["LaunchTemplate"]["LaunchTemplateName"]
     elif "MixedInstancesPolicy" in response["AutoScalingGroups"][0]:
-        lt_id = response["AutoScalingGroups"][0]["MixedInstancesPolicy"]["LaunchTemplate"][
-            "LaunchTemplateSpecification"
-        ]["LaunchTemplateId"]
+        response["AutoScalingGroups"][0]["MixedInstancesPolicy"]["LaunchTemplate"]["LaunchTemplateSpecification"][
+            "LaunchTemplateId"
+        ]
         asg_lt_name = response["AutoScalingGroups"][0]["MixedInstancesPolicy"]["LaunchTemplate"][
             "LaunchTemplateSpecification"
         ]["LaunchTemplateName"]
