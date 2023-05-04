@@ -1,7 +1,6 @@
 """Handle CLI specific logic and module definitions."""
 from __future__ import annotations
 
-import sys
 from queue import Queue
 from typing import Optional
 
@@ -10,12 +9,11 @@ from rich.console import Console
 from rich.table import Table
 
 from eksupgrade import __version__
-from eksupgrade.utils import confirm, echo_error, echo_info, echo_success, echo_warning, get_logger
+from eksupgrade.utils import confirm, echo_error, echo_info, echo_warning, get_logger
 
 from .exceptions import ClusterInactiveException
 from .models.eks import Cluster
 from .src.k8s_client import cluster_auto_enable_disable, is_cluster_auto_scaler_present
-from .src.preflight_module import pre_flight_checks
 from .starter import StatsWorker, actual_update
 
 logger = get_logger(__name__)
@@ -37,13 +35,13 @@ def main(
     region: str = typer.Argument(..., help="The AWS region where the target cluster resides"),
     max_retry: int = typer.Option(default=2, help="The most number of times to retry an upgrade"),
     force: bool = typer.Option(default=False, help="Force the upgrade (e.g. pod eviction with PDB)"),
-    preflight: bool = typer.Option(default=False, help="Run pre-flight check without upgrade"),
+    preflight: bool = typer.Option(default=False, help="Run pre-upgrade checks without upgrade"),
     parallel: bool = typer.Option(default=False, help="Upgrade all nodegroups in parallel"),
     latest_addons: bool = typer.Option(
         default=False, help="Upgrade addons to the latest eligible version instead of default"
     ),
     disable_checks: bool = typer.Option(
-        default=False, help="Disable the pre-flight and post-flight checks during upgrade scenarios"
+        default=False, help="Disable the pre-upgrade and post-upgrade checks during upgrade scenarios"
     ),
     interactive: bool = typer.Option(default=True, help="If enabled, prompt the user for confirmations"),
     version: Optional[bool] = typer.Option(
@@ -55,29 +53,16 @@ def main(
     is_present: bool = False
     replicas_value: int = 0
 
-    try:
-        # Preflight Logic
-        if not disable_checks:
-            if not pre_flight_checks(
-                preflight=True,
-                cluster_name=cluster_name,
-                region=region,
-                update_version=cluster_version,
-                force_upgrade=force,
-            ):
-                echo_error(
-                    f"Pre-flight check for cluster {cluster_name} targeting version: {cluster_version} failed!",
-                )
-                sys.exit()
-            else:
-                echo_success(
-                    f"Pre-flight check for the cluster {cluster_name} succeeded!",
-                )
-            if preflight:
-                sys.exit()
-        else:
-            echo_warning("Checks disabled! Pre/post-flight checks not executing!")
+    if disable_checks:
+        echo_warning("--disable-checks is currently unused until the new validation workflows are implemented")
 
+    if preflight:
+        echo_warning(
+            "--preflight is unused and will be removed in an upcoming release. "
+            "Please use an EKS upgrade readiness assessment tool such as: github.com/clowdhaus/eksup"
+        )
+
+    try:
         # Pull cluster details, populating the object for subsequent use throughout the upgrade.
         target_cluster: Cluster = Cluster.get(
             cluster_name=cluster_name, region=region, target_version=cluster_version, latest_addons=latest_addons
@@ -169,16 +154,6 @@ def main(
             )
             echo_info("Cluster Autoscaler is Enabled Again")
         echo_info(f"EKS Cluster {cluster_name} UPDATED TO {cluster_version}")
-
-        if not disable_checks:
-            if not pre_flight_checks(preflight=False, cluster_name=cluster_name, region=region, force_upgrade=force):
-                echo_error(
-                    f"Post flight check for cluster {cluster_name} failed after it upgraded",
-                )
-            else:
-                echo_success("After update check for cluster completed successfully")
-        else:
-            echo_warning("Post-flight check was disabled and didn't run.")
     except typer.Abort:
         echo_warning("Cluster upgrade aborted!")
     except Exception as error:

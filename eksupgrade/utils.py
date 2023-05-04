@@ -45,6 +45,11 @@ def confirm(message: str, abort: bool = True) -> bool:
     return typer.confirm(text, abort=abort)
 
 
+def echo_deprecation(message: str) -> None:
+    """Echo a message as a deprecation notice."""
+    typer.secho(message, fg=typer.colors.WHITE, bg=typer.colors.YELLOW, bold=True, blink=True)
+
+
 def echo_error(message: str) -> None:
     """Echo a message as an error."""
     typer.secho(message, fg=typer.colors.WHITE, bg=typer.colors.RED, bold=True, blink=True, err=True)

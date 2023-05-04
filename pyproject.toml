@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eksupgrade"
-version = "0.8.1"
+version = "0.9.0"
 description = "The Amazon EKS cluster upgrade utility"
 authors = ["EKS Upgrade Maintainers <eks-upgrade-maintainers@amazon.com>"]
 readme = "README.md"
@@ -36,15 +36,9 @@ line_length = 120
 line-length = 120
 target-version = ["py310"]
 
-[tool.pylint]
-max-line-length = 120
-
-[tool.pylint.messages_control]
-max-line-length = 120
-
-[tool.pylint.format]
-max-line-length = 120
-max-module-lines = 1000
+[tool.ruff]
+line-length = 120
+target-version = "py310"
 
 [tool.poe.tasks]
 isort = "isort --profile=black ."
@@ -52,11 +46,12 @@ black = "black ."
 check-black = {cmd = "black . --check --diff", help = "Check code for black styling"}
 check-isort = {cmd = "isort --check --profile=black .", help = "Check code for import styling"}
 check-docstrings = "pydocstyle -e ."
-check-pylint = "pylint eksupgrade"
+check-ruff = "ruff check eksupgrade"
 check = ["check-isort", "check-black"]
-lint = ["check-docstrings", "check-pylint"]
+lint = ["check-docstrings", "check-ruff"]
 fix = ["isort", "black"]
 test = "pytest --cov=eksupgrade --cov-report=xml --cov-report=term"
+ruff = "ruff check --fix eksupgrade"
 safety = "safety check"
 bandit = "bandit -r eksupgrade"
 security = ["safety", "bandit"]
@@ -83,9 +78,9 @@ moto = {extras = ["autoscaling", "ec2", "eks", "ssm", "sts"], version = "^4.1.5"
 isort = {extras = ["toml"], version = "^5.12.0"}
 black = "^22.12.0"
 pydocstyle = "^6.3.0"
-pylint = "^2.17.0"
 mypy = "^1.1.1"
 debugpy = "^1.6.6"
+ruff = "^0.0.264"
 
 
 [tool.poetry.group.security.dependencies]

@@ -4,7 +4,8 @@ from typing import Any, Generator
 
 import boto3
 import pytest
-from moto import mock_eks, mock_sts
+import typer
+from moto import mock_ec2, mock_eks, mock_sts
 
 
 @pytest.fixture
@@ -27,6 +28,14 @@ def sts_client(aws_creds, region) -> Generator[Any, None, None]:
     """Mock the STS boto client."""
     with mock_sts():
         client = boto3.client("sts", region_name=region)
+        yield client
+
+
+@pytest.fixture
+def ec2_client(aws_creds, region) -> Generator[Any, None, None]:
+    """Mock the EKS boto client."""
+    with mock_ec2():
+        client = boto3.client("ec2", region_name=region)
         yield client
 
 
@@ -54,3 +63,9 @@ def eks_cluster(eks_client, cluster_name):
         resourcesVpcConfig={},
     )
     yield
+
+
+@pytest.fixture
+def app():
+    """Define the typer cli fixture."""
+    return typer.Typer()
