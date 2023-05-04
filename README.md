@@ -10,28 +10,10 @@
 
 Amazon EKS cluster upgrade is a utility that automates the upgrade process for Amazon EKS clusters.
 
-## Process
 
-The process for upgrading an Amazon EKS cluster using `eksupgrade` consists of primarily of three parts:
+## Checks post v0.9.0
 
-1. Perform pre-flight checks prior to upgrading the cluster
-2. Upgrade the cluster
-3. Evaluate the cluster after upgrade
-
-### Pre-Flight Checks
-
-There are a number of version compatibility constraints, health checks, etc., before a cluster can successfully be upgraded. `eksupgrade` performs the following pre-flight checks:
-
-1. Target Version Compatibility Check - Since any cluster in EKS is always allowed to upgrade to one version above and not beyond, a check for the target version is done as with each upgrade there are a lot of configuration changes and upgrading directly to a higher version can lead to breakdown of the services being provided by it.
-2. Customer Management Key - A cluster might have a CMK Key associated with it, so it is essential to verify if the same exists in user's account before carrying out the upgrade.
-3. Security Group - Every cluster has a security group associated with it to restrict and allow the flow of traffic across it, and therefore it has to be verified whether it exists in the user's VPC or not.
-4. Node group and worker node detail - EKS cluster supports multiple types of node groups. So for the purpose of upgrade, their kubelet version compatibility has to be checked to proceed with the upgrade step.
-5. Subnets - A minimum of 4-5 free IPs are required when doing a cluster upgrade to launch new nodes and node groups with the old ones to keep the services of the cluster running while the upgrade is going on. So check on the existence of the free IPs is performed.
-6. Cluster Roles - There are a lot of important cluster roles required during the upgrade related to addons, nodes, and other components of the cluster without which the cluster upgrade cannot be executed successfully.
-7. Pod Security Policy - EKS privileged role has to be checked to be present with the current pod security policy. (deprecated in Kubernetes v1.21, and removed from Kubernetes in v1.25)
-8. Cluster addons - The cluster addons like kube-proxy, VPC CNI and CoreDNS are essential for running various services across the cluster. The parameters available on these addons which are customized by the users on the target cluster have to be captured while upgrading so that they are to added back to maintain service availability.
-9. Pod Disruption Budget - The existence of PDB has to be checked in the cluster, and minimum and maximum available with it has to be taken into account while upgrading.
-10. Horizontal Pod and Cluster Autoscaler - As the other components are upgraded to the compatible image version, a check is performed to see if Cluster or Horizontal Pod Autoscaler are present. They are reviewed to upgrade to a compatible version with respect to the control plane.
+The pre/post-flight checks are removed in favor of guiding the user to evaluate their clusters with existing tools which handle this better such as **[eksup](https://github.com/clowdhaus/eksup)**. The existing pre/post checks will be replaced with relevant checks specific to the upgrade (based on previous understanding the cluster is eligible for such an upgrade).
 
 ### Cluster Upgrade
 
@@ -50,7 +32,7 @@ Before running `eksupgrade`, you will need to have permission for both AWS and t
 1. Install `eksupgrade` locally:
 
 ```sh
-pip install eksupgrade
+python -m pip install eksupgrade
 ```
 
 2. Ensure you have the necessary AWS permissions; an example policy of required permissions is listed below:
@@ -119,24 +101,24 @@ eksupgrade --help
 
  Run eksupgrade against a target cluster.
 
-╭─ Arguments ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    cluster_name         TEXT  The name of the cluster to be upgraded [default: None] [required]                                                                                                                   │
-│ *    cluster_version      TEXT  The target Kubernetes version to upgrade the cluster to [default: None] [required]                                                                                                  │
-│ *    region               TEXT  The AWS region where the target cluster resides [default: None] [required]                                                                                                          │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --max-retry                                    INTEGER  The most number of times to retry an upgrade [default: 2]                                                                                                   │
-│ --force                 --no-force                      Force the upgrade (e.g. pod eviction with PDB) [default: no-force]                                                                                          │
-│ --preflight             --no-preflight                  Run pre-flight check without upgrade [default: no-preflight]                                                                                                │
-│ --parallel              --no-parallel                   Upgrade all nodegroups in parallel [default: no-parallel]                                                                                                   │
-│ --latest-addons         --no-latest-addons              Upgrade addons to the latest eligible version instead of default [default: no-latest-addons]                                                                │
-│ --disable-checks        --no-disable-checks             Disable the pre-flight and post-flight checks during upgrade scenarios [default: no-disable-checks]                                                         │
-│ --interactive           --no-interactive                If enabled, prompt the user for confirmations [default: interactive]                                                                                        │
-│ --version                                               Display the current eksupgrade version                                                                                                                      │
-│ --install-completion                                    Install completion for the current shell.                                                                                                                   │
-│ --show-completion                                       Show completion for the current shell, to copy it or customize the installation.                                                                            │
-│ --help                                                  Show this message and exit.                                                                                                                                 │
-╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    cluster_name         TEXT  The name of the cluster to be upgraded [default: None] [required]                                                                                                                                                        │
+│ *    cluster_version      TEXT  The target Kubernetes version to upgrade the cluster to [default: None] [required]                                                                                                                                       │
+│ *    region               TEXT  The AWS region where the target cluster resides [default: None] [required]                                                                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --max-retry                                    INTEGER  The most number of times to retry an upgrade [default: 2]                                                                                                                                        │
+│ --force                 --no-force                      Force the upgrade (e.g. pod eviction with PDB) [default: no-force]                                                                                                                               │
+│ --preflight             --no-preflight                  Run pre-upgrade checks without upgrade [default: no-preflight]                                                                                                                                   │
+│ --parallel              --no-parallel                   Upgrade all nodegroups in parallel [default: no-parallel]                                                                                                                                        │
+│ --latest-addons         --no-latest-addons              Upgrade addons to the latest eligible version instead of default [default: no-latest-addons]                                                                                                     │
+│ --disable-checks        --no-disable-checks             Disable the pre-upgrade and post-upgrade checks during upgrade scenarios [default: no-disable-checks]                                                                                            │
+│ --interactive           --no-interactive                If enabled, prompt the user for confirmations [default: interactive]                                                                                                                             │
+│ --version                                               Display the current eksupgrade version                                                                                                                                                           │
+│ --install-completion                                    Install completion for the current shell.                                                                                                                                                        │
+│ --show-completion                                       Show completion for the current shell, to copy it or customize the installation.                                                                                                                 │
+│ --help                                                  Show this message and exit.                                                                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 ## Support & Feedback
 
