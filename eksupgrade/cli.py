@@ -5,6 +5,7 @@ from queue import Queue
 from typing import Optional
 
 import typer
+import urllib3
 from rich.console import Console
 from rich.table import Table
 
@@ -15,6 +16,8 @@ from .exceptions import ClusterInactiveException
 from .models.eks import Cluster
 from .src.k8s_client import cluster_auto_enable_disable, is_cluster_auto_scaler_present
 from .starter import StatsWorker, actual_update
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = get_logger(__name__)
 app = typer.Typer(help="Automated Amazon EKS cluster upgrade CLI utility")
