@@ -70,6 +70,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    environment: dev
     strategy:
       matrix:
         include:
