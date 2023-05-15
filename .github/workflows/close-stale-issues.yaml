@@ -21,7 +21,7 @@ jobs:
         ancient-issue-message: This issue has not received any attention in 30 days. If you want to keep this issue open, please leave a comment below and auto-close will be canceled.
         stale-issue-message: This issue has not received a response in a while. If you want to keep this issue open, please leave a comment below and auto-close will be canceled.
         stale-issue-label: closing-soon
-        exempt-issue-labels: no-autoclose
+        exempt-issue-labels: no-autoclose, feature-request
         response-requested-label: response-requested
         # Don't set closed-for-staleness label to skip closing very old issues regardless of label
         closed-for-staleness-label: closed-for-staleness
