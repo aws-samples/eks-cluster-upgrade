@@ -76,7 +76,7 @@ moto = {extras = ["autoscaling", "ec2", "eks", "ssm", "sts"], version = "^4.2"}
 
 [tool.poetry.group.dev.dependencies]
 isort = {extras = ["toml"], version = "^5.13"}
-black = "^23.12"
+black = ">=23.12,<25.0"
 pydocstyle = "^6.3"
 mypy = "^1.8"
 debugpy = "^1.8"
