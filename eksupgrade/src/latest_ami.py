@@ -1,4 +1,5 @@
 """Define the AMI specific logic."""
+
 from __future__ import annotations
 
 import boto3

@@ -1,4 +1,5 @@
 """Test the base model logic."""
+
 from eksupgrade.models.base import AwsRegionResource, AwsResource, BaseResource
 
 

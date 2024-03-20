@@ -1,4 +1,5 @@
 """Define the pytest configuration for fixture reuse."""
+
 import os
 from typing import Any, Generator
 

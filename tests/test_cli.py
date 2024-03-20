@@ -1,4 +1,5 @@
 """Test the functionality of the CLI module."""
+
 from typer.testing import CliRunner
 
 from eksupgrade.cli import app

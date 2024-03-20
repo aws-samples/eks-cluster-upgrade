@@ -1,4 +1,5 @@
 """Define the image type logic for EKS."""
+
 from __future__ import annotations
 
 from typing import Optional

@@ -1,4 +1,5 @@
 """Define the starter module."""
+
 from __future__ import annotations
 
 import datetime
