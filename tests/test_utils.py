@@ -1,4 +1,5 @@
 """Test the util logic."""
+
 from typer.testing import CliRunner
 
 from eksupgrade.utils import (

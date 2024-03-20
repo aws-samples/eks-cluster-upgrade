@@ -62,8 +62,8 @@ build = "poetry build"
 [tool.poetry.dependencies]
 python = "^3.8"
 boto3 = "^1.32"
-kubernetes = ">=23.0.0 <29.0.0"
-packaging = ">=21.0,<24.0"
+kubernetes = ">=23.0.0 <=29.0.0"
+packaging = ">=24.0,<25.0"
 typer = {extras = ["all"], version = "^0.9"}
 
 
@@ -76,7 +76,7 @@ moto = {extras = ["autoscaling", "ec2", "eks", "ssm", "sts"], version = "^4.2"}
 
 [tool.poetry.group.dev.dependencies]
 isort = {extras = ["toml"], version = "^5.13"}
-black = "^23.12"
+black = ">=23.12,<25.0"
 pydocstyle = "^6.3"
 mypy = "^1.8"
 debugpy = "^1.8"

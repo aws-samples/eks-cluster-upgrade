@@ -4,6 +4,7 @@ Attributes:
     queue (queue.Queue): The queue used for executing jobs (status checks, etc).
 
 """
+
 from __future__ import annotations
 
 import base64

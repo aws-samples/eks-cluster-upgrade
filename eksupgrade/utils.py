@@ -1,4 +1,5 @@
 """Define module level utilities to be used across the EKS Upgrade package."""
+
 import json
 import logging
 import pkgutil

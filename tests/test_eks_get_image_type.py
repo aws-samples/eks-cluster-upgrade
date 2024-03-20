@@ -1,4 +1,5 @@
 """Test EKS Upgrade get image type specific logic."""
+
 from typing import Optional
 
 import pytest

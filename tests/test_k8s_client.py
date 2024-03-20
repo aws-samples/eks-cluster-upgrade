@@ -1,4 +1,5 @@
 """Test EKS Upgrade k8s client specific logic."""
+
 import pytest
 
 from eksupgrade.src.k8s_client import get_bearer_token, loading_config

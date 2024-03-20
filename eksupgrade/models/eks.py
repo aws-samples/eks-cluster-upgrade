@@ -1,4 +1,5 @@
 """Define the models to be used across the EKS upgrade tool."""
+
 from __future__ import annotations
 
 import base64

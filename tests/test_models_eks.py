@@ -1,4 +1,5 @@
 """Test the EKS model logic."""
+
 from kubernetes.client.api.core_v1_api import CoreV1Api
 from kubernetes.client.api_client import ApiClient
 

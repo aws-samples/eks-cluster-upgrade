@@ -1,4 +1,5 @@
 """Handle CLI specific logic and module definitions."""
+
 from __future__ import annotations
 
 from queue import Queue
